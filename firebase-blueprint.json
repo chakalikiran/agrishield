@@ -1,0 +1,331 @@
+{
+  "entities": {
+    "Farmer": {
+      "title": "Farmer Profile",
+      "description": "Authenticated farmer profile and insurance registry details.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication UID"
+        },
+        "farmerId": {
+          "type": "string",
+          "description": "Human-readable permanent farmer ID e.g. FMR001"
+        },
+        "name": {
+          "type": "string",
+          "description": "Farmer full legal name"
+        },
+        "email": {
+          "type": "string",
+          "description": "Farmer email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Farmer mobile phone number"
+        },
+        "village": {
+          "type": "string",
+          "description": "Farmer village name"
+        },
+        "district": {
+          "type": "string",
+          "description": "District name"
+        },
+        "state": {
+          "type": "string",
+          "description": "State name"
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "description": "Preferred UI language code e.g. en, hi, te, ta, mr"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["farmer", "officer"],
+          "description": "Account role"
+        },
+        "aadharLastFour": {
+          "type": "string",
+          "description": "Last four digits of Aadhar for identity verification"
+        },
+        "insuranceInfo": {
+          "type": "object",
+          "description": "PMFBY Insurance policy details"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of registration"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["uid", "farmerId", "name", "email", "phone", "village", "district", "state", "preferredLanguage", "role", "createdAt"]
+    },
+    "Field": {
+      "title": "Agricultural Field",
+      "description": "Registered agricultural land parcel with survey and boundary data.",
+      "type": "object",
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "description": "Unique Field identifier e.g. FL001"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the agricultural field/plot"
+        },
+        "areaAcres": {
+          "type": "number",
+          "description": "Total plot area in acres"
+        },
+        "surveyNumber": {
+          "type": "string",
+          "description": "Revenue department cadastral survey number e.g. 142/3B"
+        },
+        "soilType": {
+          "type": "string",
+          "description": "Field soil classification"
+        },
+        "center": {
+          "type": "object",
+          "description": "Centroid coordinates { latitude, longitude }"
+        },
+        "boundary": {
+          "type": "array",
+          "description": "Array of polygon vertices [{ latitude, longitude }]"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of field registration"
+        }
+      },
+      "required": ["fieldId", "name", "areaAcres", "surveyNumber", "soilType", "center", "boundary", "createdAt"]
+    },
+    "Crop": {
+      "title": "Crop Record",
+      "description": "Seasonal crop sown in a specific field.",
+      "type": "object",
+      "properties": {
+        "cropId": {
+          "type": "string",
+          "description": "Unique Crop identifier e.g. CR001"
+        },
+        "cropType": {
+          "type": "string",
+          "description": "Crop species e.g. Rice, Cotton, Maize"
+        },
+        "variety": {
+          "type": "string",
+          "description": "Crop cultivar / seed variety e.g. BPT 5204"
+        },
+        "sowingDate": {
+          "type": "string",
+          "description": "Sowing date YYYY-MM-DD"
+        },
+        "expectedHarvestDate": {
+          "type": "string",
+          "description": "Projected harvest date YYYY-MM-DD"
+        },
+        "currentStage": {
+          "type": "string",
+          "description": "Current physiological growth stage"
+        },
+        "season": {
+          "type": "string",
+          "description": "Agricultural season e.g. Kharif, Rabi"
+        },
+        "cultivatedAreaAcres": {
+          "type": "number",
+          "description": "Area under this crop"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of crop registration"
+        }
+      },
+      "required": ["cropId", "cropType", "variety", "sowingDate", "currentStage", "season", "createdAt"]
+    },
+    "Evidence": {
+      "title": "Visual Evidence Record",
+      "description": "Geo-tagged, time-stamped photo capture verifying crop condition.",
+      "type": "object",
+      "properties": {
+        "evidenceId": {
+          "type": "string",
+          "description": "Unique Evidence ID e.g. EV001"
+        },
+        "fieldId": {
+          "type": "string",
+          "description": "Field ID"
+        },
+        "cropId": {
+          "type": "string",
+          "description": "Crop ID"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of evidence e.g. growth, pre-disaster, post-disaster"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Image data URI or storage URL"
+        },
+        "latitude": {
+          "type": "number",
+          "description": "GPS latitude at capture"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "GPS longitude at capture"
+        },
+        "capturedAt": {
+          "type": "string",
+          "description": "ISO timestamp of photo capture"
+        },
+        "cropStage": {
+          "type": "string",
+          "description": "Observed crop growth stage"
+        },
+        "stepName": {
+          "type": "string",
+          "description": "Guided capture step name"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Farmer or assessor remarks"
+        },
+        "damageClassification": {
+          "type": "string",
+          "description": "Severity classification"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of record creation"
+        }
+      },
+      "required": ["evidenceId", "fieldId", "cropId", "type", "imageUrl", "latitude", "longitude", "capturedAt", "cropStage", "createdAt"]
+    },
+    "Disaster": {
+      "title": "Disaster Report",
+      "description": "Farmer self-reported weather anomaly or peril event.",
+      "type": "object",
+      "properties": {
+        "disasterId": {
+          "type": "string",
+          "description": "Disaster incident ID e.g. DR001"
+        },
+        "fieldId": {
+          "type": "string",
+          "description": "Affected Field ID"
+        },
+        "cropId": {
+          "type": "string",
+          "description": "Affected Crop ID"
+        },
+        "disasterType": {
+          "type": "string",
+          "description": "Type of peril e.g. Heavy Rainfall, Flood, Cyclone"
+        },
+        "date": {
+          "type": "string",
+          "description": "Incident occurrence date"
+        },
+        "time": {
+          "type": "string",
+          "description": "Incident occurrence time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Farmer description of damage"
+        },
+        "status": {
+          "type": "string",
+          "description": "Claim workflow status"
+        },
+        "reportedAt": {
+          "type": "string",
+          "description": "ISO timestamp when reported"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        }
+      },
+      "required": ["disasterId", "fieldId", "disasterType", "date", "status", "reportedAt", "createdAt"]
+    },
+    "Claim": {
+      "title": "Insurance Claim Record",
+      "description": "PMFBY crop insurance claim dossier and assessment status.",
+      "type": "object",
+      "properties": {
+        "claimId": {
+          "type": "string",
+          "description": "Unique Claim ID e.g. CLM001"
+        },
+        "fieldId": {
+          "type": "string",
+          "description": "Associated Field ID"
+        },
+        "cropId": {
+          "type": "string",
+          "description": "Associated Crop ID"
+        },
+        "disasterId": {
+          "type": "string",
+          "description": "Associated Disaster ID or null"
+        },
+        "status": {
+          "type": "string",
+          "description": "Claim status e.g. Under Review, Submitted, Approved"
+        },
+        "claimDate": {
+          "type": "string",
+          "description": "Date of claim filing"
+        },
+        "evidenceCompleteness": {
+          "type": "number",
+          "description": "Calculated evidence completeness percentage"
+        },
+        "disasterType": {
+          "type": "string",
+          "description": "Type of peril"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        }
+      },
+      "required": ["claimId", "fieldId", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/farmers/{uid}": {
+      "schema": "Farmer",
+      "description": "Farmer profile document keyed by auth UID."
+    },
+    "/farmers/{uid}/fields/{fieldId}": {
+      "schema": "Field",
+      "description": "Agricultural fields owned by farmer."
+    },
+    "/farmers/{uid}/fields/{fieldId}/crops/{cropId}": {
+      "schema": "Crop",
+      "description": "Crops cultivated in a specific field."
+    },
+    "/farmers/{uid}/fields/{fieldId}/crops/{cropId}/evidence/{evidenceId}": {
+      "schema": "Evidence",
+      "description": "Visual evidence photos and verification records for a specific crop."
+    },
+    "/farmers/{uid}/disasters/{disasterId}": {
+      "schema": "Disaster",
+      "description": "Disaster incident reports filed by farmer."
+    },
+    "/farmers/{uid}/claims/{claimId}": {
+      "schema": "Claim",
+      "description": "Crop insurance claims for farmer fields."
+    }
+  }
+}

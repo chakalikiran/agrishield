@@ -1,0 +1,98 @@
+import React, { useState } from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AppProvider, useApp } from "./context/AppContext";
+import { Header } from "./components/layout/Header";
+import { FarmerDashboard } from "./components/farmer/FarmerDashboard";
+import { OfficerDashboard } from "./components/officer/OfficerDashboard";
+import { WalkthroughModal } from "./components/layout/WalkthroughModal";
+import { LoginPage } from "./components/auth/LoginPage";
+import { RegisterPage } from "./components/auth/RegisterPage";
+import { Loader2 } from "lucide-react";
+
+const MainContent: React.FC = () => {
+  const { role, isOnline } = useApp();
+  const [isWalkthroughOpen, setIsWalkthroughOpen] = useState<boolean>(false);
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-200">
+      {/* High Density Header */}
+      <Header onOpenWalkthrough={() => setIsWalkthroughOpen(true)} />
+
+      {/* Main High Density Workspace */}
+      <main className="flex-1 mx-auto max-w-7xl w-full px-3 sm:px-4 lg:px-6 py-4">
+        {role === "FARMER" ? <FarmerDashboard /> : <OfficerDashboard />}
+      </main>
+
+      {/* High Density Compact System Status Footer */}
+      <footer className="h-8 bg-slate-100 border-t border-slate-200 flex items-center justify-between px-4 sm:px-6 shrink-0 text-[10px] text-slate-400 mt-auto">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-500" : "bg-amber-500"}`} />
+            <span>DB Sync: {isOnline ? "Live Firestore" : "Offline DB"}</span>
+          </div>
+          <span className="hidden sm:inline">&bull;</span>
+          <span className="hidden sm:inline">System Uptime: 99.9%</span>
+          <span className="hidden md:inline">&bull;</span>
+          <span className="hidden md:inline">PMFBY Kharif 2026</span>
+        </div>
+        <div className="text-[10px] text-slate-500 font-medium tracking-tight">
+          AGRI-SHIELD-V2.4 &bull; SMART CROP INSURANCE EVIDENCE SYSTEM
+        </div>
+      </footer>
+
+      {/* Interactive Walkthrough Modal */}
+      <WalkthroughModal
+        isOpen={isWalkthroughOpen}
+        onClose={() => setIsWalkthroughOpen(false)}
+      />
+    </div>
+  );
+};
+
+const AuthGate: React.FC = () => {
+  const { user, farmerProfile, loading } = useAuth();
+  const [authView, setAuthView] = useState<"login" | "register">("login");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center gap-3 text-center max-w-sm w-full">
+          <div className="w-12 h-12 bg-emerald-700 rounded-xl flex items-center justify-center text-white shadow-md">
+            <div className="w-6 h-6 border-2 border-white rotate-45" />
+          </div>
+          <div className="flex items-center gap-2 text-emerald-800 text-sm font-bold mt-1">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Authenticating Farmer Profile...</span>
+          </div>
+          <p className="text-xs text-slate-500">
+            Checking Firebase Authentication session and Firestore registry records.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !farmerProfile) {
+    if (authView === "register") {
+      return <RegisterPage onSwitchToLogin={() => setAuthView("login")} />;
+    }
+    return <LoginPage onSwitchToRegister={() => setAuthView("register")} />;
+  }
+
+  return (
+    <AppProvider>
+      <MainContent />
+    </AppProvider>
+  );
+};
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
+
+export default App;
+

@@ -1,0 +1,11 @@
+{
+  "name": "Smart Crop Insurance Evidence & Damage Assessment Platform",
+  "description": "AI-assisted geo-tagged crop insurance evidence collection, automated timeline correlation, Open-Meteo weather verification, multi-point damage assessment, and officer claim dossier portal.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
