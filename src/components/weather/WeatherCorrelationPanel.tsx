@@ -7,6 +7,7 @@ import {
   CloudLightning,
   CheckCircle2,
   Radio,
+  AlertTriangle,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -25,16 +26,53 @@ export const WeatherCorrelationPanel: React.FC = () => {
   const activeField = fields.find((f) => f.id === activeFieldId) || fields[0];
   const activeDisaster = disasterReports.find((d) => d.fieldId === activeFieldId);
 
-  if (isWeatherLoading) {
+  // Requirement 11: If selected field has no coordinates
+  if (!activeField || activeField.centerLat == null || activeField.centerLng == null) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-xs text-slate-500 shadow-2xs">
-        <Radio className="h-5 w-5 animate-pulse text-emerald-600 mx-auto mb-1.5" />
-        Connecting to Open-Meteo meteorological telemetry for {activeField.name}...
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-xs text-amber-800 shadow-2xs space-y-2">
+        <AlertTriangle className="h-6 w-6 text-amber-600 mx-auto" />
+        <p className="font-bold text-sm">Weather data unavailable: field location not registered.</p>
+        <p className="text-[11px] text-amber-700">Please register or select a valid field with geographic coordinates to view Open-Meteo telemetry.</p>
       </div>
     );
   }
 
-  const chartData = weatherData?.daily || [];
+  if (isWeatherLoading) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-xs text-slate-500 shadow-2xs space-y-2">
+        <Radio className="h-5 w-5 animate-pulse text-emerald-600 mx-auto" />
+        <p>Fetching real-time Open-Meteo meteorological telemetry for {activeField.name}...</p>
+      </div>
+    );
+  }
+
+  // Requirement 12: If API fails or no weather data
+  if (!weatherData || !weatherData.daily || weatherData.daily.length === 0) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-xs text-slate-500 shadow-2xs space-y-2">
+        <AlertTriangle className="h-5 w-5 text-rose-500 mx-auto" />
+        <p className="font-bold text-slate-800">Weather data unavailable</p>
+        <p className="text-slate-500">Failed to load or connect to Open-Meteo API for coordinates ({activeField.centerLat.toFixed(4)}°N, {activeField.centerLng.toFixed(4)}°E). No simulated data fallback is applied.</p>
+      </div>
+    );
+  }
+
+  const chartData = weatherData.daily;
+  const summary = weatherData.correlationSummary;
+
+  // Transparent correlation status calculation based on actual weather & disaster record
+  let correlationStatus = "No disaster report filed";
+  let correlationBadgeBg = "bg-slate-50 text-slate-800 border-slate-200";
+
+  if (activeDisaster) {
+    if (summary.extremeEventConfirmed) {
+      correlationStatus = `Weather correlation: Confirmed (${activeDisaster.disasterType})`;
+      correlationBadgeBg = "bg-emerald-50 text-emerald-900 border-emerald-200";
+    } else {
+      correlationStatus = `Weather correlation: Unconfirmed / Normal`;
+      correlationBadgeBg = "bg-amber-50 text-amber-900 border-amber-200";
+    }
+  }
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs space-y-4">
@@ -42,26 +80,26 @@ export const WeatherCorrelationPanel: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded inline-block mb-1">
-            Open-Meteo Historical Archive & Forecast
+            Open-Meteo Live Telemetry ({activeField.name})
           </span>
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
             <CloudRain className="h-4 w-4 text-emerald-700" />
             Meteorological Weather Correlation & Rainfall Timeline
           </h3>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            Coordinates: {activeField.centerLat.toFixed(4)}°N, {activeField.centerLng.toFixed(4)}°E &bull; Krishna Agricultural Basin
+            Coordinates: {activeField.centerLat.toFixed(4)}°N, {activeField.centerLng.toFixed(4)}°E &bull; Field: {activeField.name}
           </p>
         </div>
 
-        {weatherData?.correlationSummary.extremeEventConfirmed ? (
+        {summary.extremeEventConfirmed ? (
           <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-rose-900">
-            <CloudLightning className="h-3.5 w-3.5 text-rose-600 shrink-0 animate-bounce" />
-            Extreme Precipitation Spike Confirmed (94.2 mm)
+            <CloudLightning className="h-3.5 w-3.5 text-rose-600 shrink-0" />
+            {summary.eventLabel} ({summary.peakRainfallMm} mm)
           </div>
         ) : (
           <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-emerald-900">
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            Standard Meteorological Conditions
+            {summary.eventLabel}
           </div>
         )}
       </div>
@@ -74,10 +112,10 @@ export const WeatherCorrelationPanel: React.FC = () => {
             Peak Rainfall
           </div>
           <div className="text-lg font-bold text-slate-900 mt-0.5">
-            {weatherData?.correlationSummary.peakRainfallMm || 94.2} <span className="text-xs font-normal text-slate-500">mm</span>
+            {summary.peakRainfallMm} <span className="text-xs font-normal text-slate-500">mm</span>
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
-            Date: {weatherData?.correlationSummary.peakRainfallDate || "2026-08-22"}
+            Date: {summary.peakRainfallDate}
           </div>
         </div>
 
@@ -87,10 +125,10 @@ export const WeatherCorrelationPanel: React.FC = () => {
             Peak Wind Gusts
           </div>
           <div className="text-lg font-bold text-slate-900 mt-0.5">
-            64.8 <span className="text-xs font-normal text-slate-500">km/h</span>
+            {summary.peakWindSpeedKmh || 0} <span className="text-xs font-normal text-slate-500">km/h</span>
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
-            Gale force classification
+            Max telemetry recorded
           </div>
         </div>
 
@@ -100,23 +138,23 @@ export const WeatherCorrelationPanel: React.FC = () => {
             Avg Max Temp
           </div>
           <div className="text-lg font-bold text-slate-900 mt-0.5">
-            28.4 <span className="text-xs font-normal text-slate-500">°C</span>
+            {summary.avgMaxTempC || 0} <span className="text-xs font-normal text-slate-500">°C</span>
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
-            Range: 25.4°C - 32.4°C
+            Monitored window average
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
-          <div className="flex items-center gap-1 text-slate-500 text-[11px] font-semibold uppercase tracking-wider">
-            <Radio className="h-3.5 w-3.5 text-emerald-600" />
+        <div className={`rounded-lg border p-2.5 ${correlationBadgeBg}`}>
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider opacity-80">
+            <Radio className="h-3.5 w-3.5" />
             Correlation Status
           </div>
-          <div className="text-sm font-bold text-emerald-700 mt-0.5">
-            98.5% Match
+          <div className="text-xs font-bold mt-1">
+            {correlationStatus}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
-            Correlated with {activeDisaster?.disasterType || "Heavy Rainfall"}
+          <div className="text-[10px] opacity-75 mt-0.5 truncate">
+            {activeDisaster ? `Disaster: ${activeDisaster.disasterType} (${activeDisaster.date})` : "No disaster claim logged"}
           </div>
         </div>
       </div>
@@ -124,7 +162,7 @@ export const WeatherCorrelationPanel: React.FC = () => {
       {/* Recharts Precipitation & Wind Timeline */}
       <div>
         <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1.5">
-          <span>Daily Rainfall (mm) & Wind Speed (km/h) Correlation Window</span>
+          <span>Daily Rainfall (mm) & Wind Speed (km/h) Timeline</span>
           <div className="flex items-center gap-3 text-[10px]">
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 bg-blue-500 rounded-xs inline-block"></span> Rainfall (mm)
@@ -141,7 +179,7 @@ export const WeatherCorrelationPanel: React.FC = () => {
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
               <XAxis
                 dataKey="date"
-                tickFormatter={(d) => d.split("-").slice(1).join("/")}
+                tickFormatter={(d) => (d ? d.split("-").slice(1).join("/") : "")}
                 tick={{ fontSize: 10, fill: "#64748b" }}
               />
               <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#64748b" }} />
@@ -185,8 +223,7 @@ export const WeatherCorrelationPanel: React.FC = () => {
           <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
           <div className="text-xs text-blue-950 leading-relaxed">
             <span className="font-bold">Meteorological Evidence Synthesis: </span>
-            {weatherData?.correlationSummary.correlationStatement ||
-              `Heavy rainfall of 94.2 mm was recorded near Field ${activeField.id} on 22 August 2026, fully validating the reported flood event.`}
+            {summary.correlationStatement || "Live telemetry retrieved from Open-Meteo."}
           </div>
         </div>
       </div>

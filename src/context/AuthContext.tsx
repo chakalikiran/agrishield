@@ -11,15 +11,15 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  collection,
-  getDocs,
 } from "firebase/firestore";
-import { auth, db, handleFirestoreError, OperationType } from "../lib/firebase";
-import { FarmerProfile, FarmerRegistrationInput } from "../types";
+import { auth, db } from "../lib/firebase";
+import { FarmerProfile, FarmerRegistrationInput, OfficerProfile } from "../types";
 
 interface AuthContextType {
   user: User | null;
+  userRole: "farmer" | "officer" | null;
   farmerProfile: FarmerProfile | null;
+  officerProfile: OfficerProfile | null;
   loading: boolean;
   error: string | null;
   clearError: () => void;
@@ -27,6 +27,7 @@ interface AuthContextType {
   register: (input: FarmerRegistrationInput) => Promise<void>;
   logout: () => Promise<void>;
   updateFarmerProfile: (updates: Partial<FarmerProfile>) => Promise<void>;
+  seedOfficerTestAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,124 +69,89 @@ export function getFriendlyAuthErrorMessage(error: unknown): string {
   return errObj.message || "An authentication error occurred. Please try again.";
 }
 
-// Prototype-friendly sequential/readable ID generator
 async function generateReadableFarmerId(): Promise<string> {
-  try {
-    const snap = await getDocs(collection(db, "farmers"));
-    const count = snap.size + 1;
-    return `FMR${String(count).padStart(3, "0")}`;
-  } catch {
-    const randomNum = Math.floor(100 + Math.random() * 900);
-    return `FMR${randomNum}`;
-  }
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  return `FMR${randomNum}`;
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<"farmer" | "officer" | null>(null);
   const [farmerProfile, setFarmerProfile] = useState<FarmerProfile | null>(null);
+  const [officerProfile, setOfficerProfile] = useState<OfficerProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const clearError = () => setError(null);
 
-  // Fetch or create fallback profile for authenticated user
-  const fetchFarmerProfile = async (firebaseUser: User): Promise<FarmerProfile> => {
-    const farmerDocRef = doc(db, "farmers", firebaseUser.uid);
-    let profileData: FarmerProfile;
+  const loadUserRoleAndProfile = async (firebaseUser: User) => {
+    // 1. Check users/{uid} for central role lookup
+    const userDocRef = doc(db, "users", firebaseUser.uid);
+    const userSnap = await getDoc(userDocRef);
 
-    try {
-      const docSnap = await getDoc(farmerDocRef);
-      if (docSnap.exists()) {
-        const raw = docSnap.data();
-        profileData = {
-          id: raw.farmerId || raw.id || `FMR-${firebaseUser.uid.substring(0, 4)}`,
-          farmerId: raw.farmerId || raw.id || `FMR-${firebaseUser.uid.substring(0, 4)}`,
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      const roleVal = (userData.role || "").toLowerCase();
+      if (roleVal === "officer") {
+        setUserRole("officer");
+        setOfficerProfile({
           uid: firebaseUser.uid,
-          name: raw.name || firebaseUser.displayName || "Authenticated Farmer",
-          phone: raw.phone || "9848022338",
-          email: raw.email || firebaseUser.email || "",
-          village: raw.village || "Kankipadu",
-          district: raw.district || "Krishna",
-          state: raw.state || "Andhra Pradesh",
-          preferredLanguage: raw.preferredLanguage || "en",
-          role: raw.role || "farmer",
-          aadharLastFour: raw.aadharLastFour || "8821",
-          createdAt: raw.createdAt || new Date().toISOString(),
-          updatedAt: raw.updatedAt,
-          insuranceInfo: raw.insuranceInfo || {
-            policyNumber: "PMFBY/AP/2026/094281",
-            schemeName: "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
-            sumInsuredPerAcre: 38500,
-            insurerName: "Agriculture Insurance Company of India (AIC)",
-            coverageStartDate: "2026-06-01",
-            coverageEndDate: "2026-11-30",
-            applicationId: "APP-PMFBY-2026-8819",
-          },
-        };
-      } else {
-        // Auto-bootstrap profile if missing
-        const newFarmerId = await generateReadableFarmerId();
-        profileData = {
-          id: newFarmerId,
-          farmerId: newFarmerId,
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Registered Farmer",
-          phone: "9848022338",
-          email: firebaseUser.email || "",
-          village: "Kankipadu",
-          district: "Krishna",
-          state: "Andhra Pradesh",
-          preferredLanguage: "en",
-          role: "farmer",
-          aadharLastFour: "8821",
-          createdAt: new Date().toISOString(),
-          insuranceInfo: {
-            policyNumber: `PMFBY/AP/2026/${Math.floor(100000 + Math.random() * 900000)}`,
-            schemeName: "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
-            sumInsuredPerAcre: 38500,
-            insurerName: "Agriculture Insurance Company of India (AIC)",
-            coverageStartDate: "2026-06-01",
-            coverageEndDate: "2026-11-30",
-            applicationId: `APP-PMFBY-${Math.floor(10000 + Math.random() * 90000)}`,
-          },
-        };
-
-        try {
-          await setDoc(farmerDocRef, profileData);
-        } catch (setErr) {
-          console.warn("Could not write bootstrap profile to Firestore:", setErr);
-        }
+          id: userData.officerId || `OFF-${firebaseUser.uid.substring(0, 4)}`,
+          name: userData.name || "Officer",
+          email: firebaseUser.email || userData.email || "",
+          role: "officer",
+          officerId: userData.officerId || "AIC-AP-KR-042",
+          district: userData.district || "Krishna",
+          badgeNumber: userData.officerId || "AIC-AP-KR-042",
+          assignedDistrict: userData.district || "Krishna",
+          insurerName: "Agriculture Insurance Company of India",
+        });
+        setFarmerProfile(null);
+        return;
       }
-    } catch (err) {
-      console.warn("Firestore error fetching farmer profile:", err);
-      // Fallback in-memory profile so UI doesn't crash
-      profileData = {
-        id: `FMR001`,
-        farmerId: `FMR001`,
+    }
+
+    // 2. Check farmers/{uid} for farmer profile
+    const farmerDocRef = doc(db, "farmers", firebaseUser.uid);
+    const farmerSnap = await getDoc(farmerDocRef);
+
+    if (farmerSnap.exists()) {
+      const raw = farmerSnap.data();
+      setUserRole("farmer");
+      setFarmerProfile({
+        id: raw.farmerId || raw.id || `FMR-${firebaseUser.uid.substring(0, 4)}`,
+        farmerId: raw.farmerId || raw.id || `FMR-${firebaseUser.uid.substring(0, 4)}`,
         uid: firebaseUser.uid,
-        name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Farmer",
-        phone: "9848022338",
-        email: firebaseUser.email || "",
-        village: "Kankipadu",
-        district: "Krishna",
-        state: "Andhra Pradesh",
-        preferredLanguage: "en",
+        name: raw.name || firebaseUser.displayName || "",
+        phone: raw.phone || "",
+        email: raw.email || firebaseUser.email || "",
+        village: raw.village || "",
+        district: raw.district || "",
+        state: raw.state || "",
+        preferredLanguage: raw.preferredLanguage || "en",
         role: "farmer",
-        aadharLastFour: "8821",
-        createdAt: new Date().toISOString(),
-        insuranceInfo: {
-          policyNumber: "PMFBY/AP/2026/094281",
+        aadharLastFour: raw.aadharLastFour || "",
+        createdAt: raw.createdAt || new Date().toISOString(),
+        updatedAt: raw.updatedAt,
+        insuranceInfo: raw.insuranceInfo || {
+          policyNumber: `PMFBY/AP/2026/${Math.floor(100000 + Math.random() * 900000)}`,
           schemeName: "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
           sumInsuredPerAcre: 38500,
           insurerName: "Agriculture Insurance Company of India (AIC)",
           coverageStartDate: "2026-06-01",
           coverageEndDate: "2026-11-30",
-          applicationId: "APP-PMFBY-2026-8819",
+          applicationId: `APP-PMFBY-${Math.floor(10000 + Math.random() * 90000)}`,
         },
-      };
+      });
+      setOfficerProfile(null);
+      return;
     }
 
-    return profileData;
+    // If neither exists, role is missing
+    setUserRole(null);
+    setFarmerProfile(null);
+    setOfficerProfile(null);
+    throw new Error("Your account does not have an assigned role. Please contact the administrator.");
   };
 
   useEffect(() => {
@@ -194,14 +160,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentUser) {
         setUser(currentUser);
         try {
-          const profile = await fetchFarmerProfile(currentUser);
-          setFarmerProfile(profile);
-        } catch (err) {
-          console.error("Failed to load farmer profile:", err);
+          await loadUserRoleAndProfile(currentUser);
+          setError(null);
+        } catch (err: any) {
+          console.error("Role lookup error:", err);
+          setUserRole(null);
+          setFarmerProfile(null);
+          setOfficerProfile(null);
+          setError(err.message || "Your account does not have an assigned role. Please contact the administrator.");
         }
       } else {
         setUser(null);
+        setUserRole(null);
         setFarmerProfile(null);
+        setOfficerProfile(null);
       }
       setLoading(false);
     });
@@ -215,9 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const credential = await signInWithEmailAndPassword(auth, email.trim(), pass);
       setUser(credential.user);
-      const profile = await fetchFarmerProfile(credential.user);
-      setFarmerProfile(profile);
-    } catch (err) {
+      await loadUserRoleAndProfile(credential.user);
+    } catch (err: any) {
       const friendly = getFriendlyAuthErrorMessage(err);
       setError(friendly);
       throw new Error(friendly);
@@ -252,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         state: input.state.trim(),
         preferredLanguage: input.preferredLanguage || "en",
         role: "farmer",
-        aadharLastFour: input.aadharLastFour?.trim() || "8821",
+        aadharLastFour: input.aadharLastFour?.trim() || "",
         createdAt: new Date().toISOString(),
         insuranceInfo: {
           policyNumber: `PMFBY/${stateCode}/2026/${randomPolicyDigits}`,
@@ -265,17 +236,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       };
 
-      // Store in Firestore farmers/{uid}
       const farmerDocRef = doc(db, "farmers", credential.user.uid);
-      try {
-        await setDoc(farmerDocRef, newProfile);
-      } catch (storeErr) {
-        console.warn("Could not save farmer to Firestore, continuing with local state:", storeErr);
-      }
+      await setDoc(farmerDocRef, newProfile);
 
       setUser(credential.user);
+      setUserRole("farmer");
       setFarmerProfile(newProfile);
-    } catch (err) {
+      setOfficerProfile(null);
+    } catch (err: any) {
       const friendly = getFriendlyAuthErrorMessage(err);
       setError(friendly);
       throw new Error(friendly);
@@ -284,12 +252,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const seedOfficerTestAccount = async (): Promise<void> => {
+    if (!user) return;
+    try {
+      const officerData = {
+        uid: user.uid,
+        email: user.email || "officer@aicofindia.gov.in",
+        role: "officer",
+        name: "Dr. Ananya Sharma",
+        officerId: "AIC-AP-KR-042",
+        district: "Krishna",
+      };
+      await setDoc(doc(db, "users", user.uid), officerData);
+      setUserRole("officer");
+      setOfficerProfile({
+        uid: user.uid,
+        id: "AIC-AP-KR-042",
+        name: "Dr. Ananya Sharma",
+        email: user.email || "officer@aicofindia.gov.in",
+        role: "officer",
+        officerId: "AIC-AP-KR-042",
+        district: "Krishna",
+        badgeNumber: "AIC-AP-KR-042",
+        assignedDistrict: "Krishna",
+        insurerName: "Agriculture Insurance Company of India",
+      });
+      setFarmerProfile(null);
+      setError(null);
+    } catch (err: any) {
+      console.error("Failed to seed officer account:", err);
+      setError("Failed to initialize officer test account.");
+    }
+  };
+
   const logout = async (): Promise<void> => {
     setLoading(true);
     try {
       await signOut(auth);
       setUser(null);
+      setUserRole(null);
       setFarmerProfile(null);
+      setOfficerProfile(null);
     } catch (err) {
       console.error("Sign out error:", err);
     } finally {
@@ -320,7 +323,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
+        userRole,
         farmerProfile,
+        officerProfile,
         loading,
         error,
         clearError,
@@ -328,6 +333,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateFarmerProfile,
+        seedOfficerTestAccount,
       }}
     >
       {children}

@@ -32,7 +32,7 @@ export const DisasterReportModal: React.FC<{
 
   if (!isOpen) return null;
 
-  const currentField = fields.find((f) => f.id === selectedFieldId) || fields[0];
+  const currentField = fields.find((f) => f.id === selectedFieldId) || fields[0] || { id: "FLD001", farmerId: "FMR-001" };
   const currentCrop = crops.find((c) => c.fieldId === selectedFieldId) || crops[0];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,7 +41,7 @@ export const DisasterReportModal: React.FC<{
     reportDisaster({
       fieldId: selectedFieldId,
       cropId: currentCrop?.id || "CRP001",
-      farmerId: currentField.farmerId,
+      farmerId: currentField?.farmerId || "FMR-001",
       disasterType: disasterType,
       date: eventDate,
       time: eventTime,

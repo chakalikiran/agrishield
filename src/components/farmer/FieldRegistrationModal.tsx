@@ -140,7 +140,7 @@ export const FieldRegistrationModal: React.FC<{ isOpen: boolean; onClose: () => 
       } else {
         // Fallback
         const createdField = await registerField({
-          farmerId: farmer.id,
+          farmerId: farmer?.id || farmer?.farmerId || "FMR-001",
           name: fieldName.trim(),
           surveyNumber: surveyNumber.trim(),
           soilType,
@@ -152,7 +152,7 @@ export const FieldRegistrationModal: React.FC<{ isOpen: boolean; onClose: () => 
 
         await registerCrop({
           fieldId: createdField.id,
-          farmerId: farmer.id,
+          farmerId: farmer?.id || farmer?.farmerId || "FMR-001",
           cropType: cropType.trim(),
           variety: variety.trim(),
           sowingDate,

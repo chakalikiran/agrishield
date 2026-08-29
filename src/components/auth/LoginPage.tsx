@@ -9,6 +9,7 @@ import {
   Loader2,
   Sparkles,
   UserCheck,
+  Building2,
 } from "lucide-react";
 
 interface LoginPageProps {
@@ -16,10 +17,10 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
-  const { login, error, clearError, loading } = useAuth();
+  const { login, seedOfficerTestAccount, error, clearError, loading } = useAuth();
 
-  const [email, setEmail] = useState<string>("ramesh.kumar@agrishield.in");
-  const [password, setPassword] = useState<string>("Kisan@2026");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -43,11 +44,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handleDemoFill = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
+  const handleOfficerSeedLogin = async () => {
     setLocalError(null);
     clearError();
+    if (!email.trim() || !password) {
+      setLocalError("Please enter an email and password to create/sign in as officer.");
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      try {
+        await login(email, password);
+      } catch {
+        // If account doesn't exist in Auth yet, create it
+        const { createUserWithEmailAndPassword } = await import("firebase/auth");
+        const { auth } = await import("../../lib/firebase");
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        await login(email, password);
+      }
+      await seedOfficerTestAccount();
+    } catch (err: any) {
+      setLocalError(err.message || "Failed to login as officer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const activeError = localError || error;
@@ -152,41 +172,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
                 </>
               )}
             </button>
+
+            <button
+              type="button"
+              onClick={handleOfficerSeedLogin}
+              disabled={isSubmitting || loading}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-blue-300 rounded-lg shadow-2xs text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition cursor-pointer"
+            >
+              <Building2 className="h-3.5 w-3.5 text-blue-600" />
+              <span>Sign In / Seed as Insurance Officer</span>
+            </button>
           </form>
-
-          {/* Quick Demo Pre-fills */}
-          <div className="pt-2 border-t border-slate-100">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-2">
-              Quick Demo Accounts
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-left">
-              <button
-                type="button"
-                onClick={() => handleDemoFill("ramesh.kumar@agrishield.in", "Kisan@2026")}
-                className="p-2 border border-slate-200 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 text-left transition cursor-pointer group"
-              >
-                <span className="font-bold text-[11px] text-slate-800 group-hover:text-emerald-800 block">
-                  Ramesh Kumar (AP)
-                </span>
-                <span className="text-[10px] text-slate-500 block truncate">
-                  ramesh.kumar@agrishield.in
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoFill("suresh.patel@agrishield.in", "Kisan@2026")}
-                className="p-2 border border-slate-200 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 text-left transition cursor-pointer group"
-              >
-                <span className="font-bold text-[11px] text-slate-800 group-hover:text-emerald-800 block">
-                  Suresh Patel (GJ)
-                </span>
-                <span className="text-[10px] text-slate-500 block truncate">
-                  suresh.patel@agrishield.in
-                </span>
-              </button>
-            </div>
-          </div>
 
           {/* Switch to Register */}
           <div className="text-center pt-2 border-t border-slate-100">

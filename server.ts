@@ -224,15 +224,19 @@ Important: Provide objective preliminary assessment metrics. Return valid JSON o
 // Weather API Proxy / Aggregator with Open-Meteo Integration
 app.get("/api/weather", async (req, res) => {
   try {
-    const { lat = "16.5062", lng = "80.6480", startDate, endDate } = req.query;
+    const { lat, lng, startDate, endDate } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, error: "Latitude and longitude required" });
+    }
 
     const latNum = parseFloat(lat as string);
     const lngNum = parseFloat(lng as string);
 
-    // Fetch from Open-Meteo archive or forecast
     const today = new Date().toISOString().split("T")[0];
-    const targetStartDate = (startDate as string) || "2026-08-18";
-    const targetEndDate = (endDate as string) || "2026-08-25";
+    const defaultStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const targetStartDate = (startDate as string) || defaultStart;
+    const targetEndDate = (endDate as string) || today;
 
     const openMeteoUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${latNum}&longitude=${lngNum}&start_date=${targetStartDate}&end_date=${targetEndDate}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,rain_sum,wind_speed_10m_max&timezone=auto`;
 
@@ -242,45 +246,20 @@ app.get("/api/weather", async (req, res) => {
       if (response.ok) {
         data = await response.json();
       } else {
-        // Forecast fallback if archive date is out of range
         const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latNum}&longitude=${lngNum}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,rain_sum,wind_speed_10m_max&past_days=7&forecast_days=3&timezone=auto`;
         const forecastRes = await fetch(forecastUrl);
-        data = await forecastRes.json();
+        if (forecastRes.ok) {
+          data = await forecastRes.json();
+        }
       }
     } catch {
-      // Offline / Network fallback
       data = null;
     }
 
-    if (!data || !data.daily) {
-      // Realistic simulated weather dataset for the field coordinate
-      const days = ["2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-23", "2026-08-24", "2026-08-25"];
-      const rainfall = [4.2, 8.5, 24.0, 68.4, 94.2, 52.8, 14.6, 2.1];
-      const maxTemp = [32.4, 30.8, 28.5, 26.2, 25.4, 27.1, 29.0, 31.2];
-      const windSpeed = [12.4, 18.2, 34.5, 52.1, 64.8, 38.0, 21.3, 14.0];
-
-      return res.json({
-        success: true,
-        source: "simulated_cache",
-        location: { lat: latNum, lng: lngNum },
-        daily: {
-          time: days,
-          precipitation_sum: rainfall,
-          temperature_2m_max: maxTemp,
-          wind_speed_10m_max: windSpeed,
-          weather_code: [1, 2, 61, 65, 82, 80, 51, 1],
-        },
-        correlationSummary: {
-          peakRainfallDate: "2026-08-22",
-          peakRainfallMm: 94.2,
-          extremeEventConfirmed: true,
-          eventLabel: "Severe Inundation / Torrential Downpour Event",
-          correlationStatement: "Heavy rainfall of 94.2 mm and gale winds of 64.8 km/h recorded on 22 August 2026 directly correlate with farmer-reported disaster timestamp."
-        }
-      });
+    if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
+      return res.status(504).json({ success: false, error: "Weather data unavailable from Open-Meteo API for these coordinates." });
     }
 
-    // Process Open-Meteo real daily response
     const times = data.daily.time || [];
     const rainSums = data.daily.precipitation_sum || data.daily.rain_sum || [];
     const windSpeeds = data.daily.wind_speed_10m_max || [];
@@ -288,14 +267,29 @@ app.get("/api/weather", async (req, res) => {
 
     let maxRain = 0;
     let maxRainDate = times[0] || today;
+    let totalRain = 0;
+    let maxWind = 0;
+    let totalTemp = 0;
+
     rainSums.forEach((r: number, idx: number) => {
-      if (r > maxRain) {
-        maxRain = r;
+      const val = r || 0;
+      totalRain += val;
+      if (val > maxRain) {
+        maxRain = val;
         maxRainDate = times[idx];
       }
     });
 
-    const isExtreme = maxRain > 35;
+    windSpeeds.forEach((w: number) => {
+      if ((w || 0) > maxWind) maxWind = w || 0;
+    });
+
+    maxTemps.forEach((t: number) => {
+      totalTemp += (t || 0);
+    });
+
+    const avgMaxTemp = maxTemps.length > 0 ? Number((totalTemp / maxTemps.length).toFixed(1)) : 0;
+    const isExtreme = maxRain > 30;
 
     return res.json({
       success: true,
@@ -310,17 +304,19 @@ app.get("/api/weather", async (req, res) => {
       },
       correlationSummary: {
         peakRainfallDate: maxRainDate,
-        peakRainfallMm: maxRain,
+        peakRainfallMm: Number(maxRain.toFixed(1)),
+        peakWindSpeedKmh: Number(maxWind.toFixed(1)),
+        avgMaxTempC: avgMaxTemp,
         extremeEventConfirmed: isExtreme,
-        eventLabel: isExtreme ? "Heavy Precipitation Anomaly" : "Moderate Meteorological Conditions",
+        eventLabel: isExtreme ? "Heavy Precipitation Anomaly Detected" : "Standard Meteorological Conditions",
         correlationStatement: isExtreme
-          ? `Recorded severe rainfall of ${maxRain.toFixed(1)} mm around ${maxRainDate} matches reported disaster timing.`
-          : `Precipitation levels (${maxRain.toFixed(1)} mm) recorded across the monitored window.`
+          ? `Peak rainfall of ${maxRain.toFixed(1)} mm and max wind gusts of ${maxWind.toFixed(1)} km/h recorded around ${maxRainDate}.`
+          : `Monitored rainfall max of ${maxRain.toFixed(1)} mm and average max temperature of ${avgMaxTemp}°C.`
       }
     });
   } catch (error: any) {
     console.error("Weather endpoint error:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 

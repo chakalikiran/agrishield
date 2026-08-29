@@ -86,7 +86,7 @@ export const FarmerDashboard: React.FC = () => {
         <div className="inline-flex h-10 w-10 animate-spin items-center justify-center rounded-full border-3 border-slate-200 border-t-emerald-700 text-emerald-700" />
         <h3 className="text-base font-bold text-slate-800">Loading farmer records from Firestore...</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          Connecting to Firebase Firestore for authenticated account UID: {farmer.id || "Farmer"}
+          Connecting to Firebase Firestore for authenticated account UID: {farmer?.id || farmer?.farmerId || "Farmer"}
         </p>
       </div>
     );

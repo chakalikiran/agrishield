@@ -28,12 +28,19 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
     t,
   } = useApp();
 
-  const targetClaimId = claimId || activeClaimId || (claims[0]?.id ?? "");
-  const claim = claims.find((c) => c.id === targetClaimId) || claims[0];
+  const defaultClaim = { id: "CLM-001", status: "Pending", fieldId: "", cropId: "", disasterReportId: "", submittedAt: new Date().toISOString() };
+  const defaultField = { id: "FLD-001", name: "Primary Field", surveyNumber: "123/1", approxAreaAcres: 2.0, soilType: "Alluvial" };
+  const defaultCrop = { id: "CRP-001", cropType: "Rice (Paddy)", variety: "BPT 5204", sowingDate: "2026-06-01", currentStage: "Vegetative" };
+  const defaultDisaster = { id: "DR-001", disasterType: "Heavy Rainfall", date: "2026-08-20", description: "Monsoon downpour" };
+  const defaultInsurance = { policyNumber: "PMFBY/IN/2026/000000", sumInsuredPerAcre: 38500 };
 
-  const field = claim ? (fields.find((f) => f.id === claim.fieldId) || fields[0]) : fields[0];
-  const crop = claim ? (crops.find((c) => c.id === claim.cropId) || crops[0]) : crops[0];
-  const disaster = claim ? (disasterReports.find((d) => d.id === claim.disasterReportId) || disasterReports[0]) : disasterReports[0];
+  const targetClaimId = claimId || activeClaimId || (claims[0]?.id ?? "");
+  const claim = (claims.find((c) => c.id === targetClaimId) || claims[0]) || defaultClaim;
+
+  const field = (fields.find((f) => f.id === claim.fieldId) || fields[0]) || defaultField;
+  const crop = (crops.find((c) => c.id === claim.cropId) || crops[0]) || defaultCrop;
+  const disaster = (disasterReports.find((d) => d.id === claim.disasterReportId) || disasterReports[0]) || defaultDisaster;
+  const insurance = farmer?.insuranceInfo || defaultInsurance;
 
   const fieldEvidence = field ? evidenceList.filter((e) => e.fieldId === field.id) : [];
   const preEvidence = fieldEvidence.filter(
@@ -120,7 +127,7 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
               </div>
               <div>
                 <span className="text-slate-500 text-[11px]">Policy No: </span>
-                <span className="font-mono font-semibold text-slate-800">{farmer.insuranceInfo.policyNumber}</span>
+                <span className="font-mono font-semibold text-slate-800">{insurance.policyNumber}</span>
               </div>
               <div>
                 <span className="text-slate-500 text-[11px]">Generated: </span>
@@ -145,27 +152,27 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <span className="text-slate-400 font-bold block text-[10px] uppercase">Farmer Name</span>
-                <span className="font-bold text-slate-900">{farmer.name}</span>
+                <span className="font-bold text-slate-900">{farmer?.name || "Farmer"}</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block text-[10px] uppercase">Farmer ID</span>
-                <span className="font-mono font-bold text-emerald-800">{farmer.id}</span>
+                <span className="font-mono font-bold text-emerald-800">{farmer?.id || farmer?.farmerId || "FMR-001"}</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block text-[10px] uppercase">Village / Mandal</span>
-                <span className="font-medium text-slate-800">{farmer.village}</span>
+                <span className="font-medium text-slate-800">{farmer?.village || "N/A"}</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block text-[10px] uppercase">District / State</span>
-                <span className="font-medium text-slate-800">{farmer.district}, {farmer.state}</span>
+                <span className="font-medium text-slate-800">{farmer?.district || "N/A"}, {farmer?.state || "N/A"}</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block text-[10px] uppercase">Phone</span>
-                <span className="font-medium text-slate-800">{farmer.phone}</span>
+                <span className="font-medium text-slate-800">{farmer?.phone || "N/A"}</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block text-[10px] uppercase">Sum Insured / Acre</span>
-                <span className="font-bold text-emerald-800">₹{farmer.insuranceInfo.sumInsuredPerAcre.toLocaleString()}</span>
+                <span className="font-bold text-emerald-800">₹{insurance.sumInsuredPerAcre?.toLocaleString() || "38,500"}</span>
               </div>
             </div>
           </div>

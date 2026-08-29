@@ -1,4 +1,4 @@
-export type UserRole = "FARMER" | "OFFICER";
+export type UserRole = "farmer" | "officer" | "FARMER" | "OFFICER";
 
 export type LanguageCode = "en" | "hi" | "te" | "ta" | "mr";
 
@@ -41,13 +41,16 @@ export interface FarmerRegistrationInput {
 }
 
 export interface OfficerProfile {
-  id: string; // e.g. "OFF-704"
+  uid: string;
+  id: string;
   name: string;
-  badgeNumber: string;
   email: string;
-  role: "District Agricultural Officer" | "Senior Loss Assessor";
-  assignedDistrict: string;
-  insurerName: string;
+  role: "officer" | "OFFICER";
+  officerId: string;
+  district: string;
+  badgeNumber?: string;
+  assignedDistrict?: string;
+  insurerName?: string;
 }
 
 export interface FirestoreLatLng {

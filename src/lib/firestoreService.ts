@@ -697,3 +697,54 @@ export async function clearFarmerData(uid: string): Promise<void> {
     await deleteDoc(doc(db, "farmers", uid, "claims", c.claimId));
   }
 }
+
+export async function getAllClaimsForOfficer(): Promise<FirestoreClaim[]> {
+  try {
+    const farmersSnap = await getDocs(collection(db, "farmers"));
+    const allClaims: FirestoreClaim[] = [];
+    for (const farmerDoc of farmersSnap.docs) {
+      const farmerId = farmerDoc.id;
+      const claimsSnap = await getDocs(collection(db, "farmers", farmerId, "claims"));
+      claimsSnap.forEach((d) => {
+        const data = d.data() as FirestoreClaim;
+        allClaims.push({
+          ...data,
+          claimId: data.claimId || d.id,
+          id: data.claimId || d.id,
+          farmerId: data.farmerId || farmerId,
+        });
+      });
+    }
+    return allClaims.sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  } catch (err) {
+    console.warn("Failed to fetch all claims for officer:", err);
+    return [];
+  }
+}
+
+export async function updateClaimDecisionInFirestore(
+  farmerId: string,
+  claimId: string,
+  decision: string,
+  remarks: string,
+  officerName: string,
+  officerId: string,
+  approvedAmount?: number
+): Promise<void> {
+  if (!farmerId || !claimId) return;
+  const docRef = doc(db, "farmers", farmerId, "claims", claimId);
+  await updateDoc(docRef, {
+    status: decision,
+    officerDecision: {
+      officerName,
+      officerId,
+      decision,
+      actionTimestamp: new Date().toISOString(),
+      remarks,
+      approvedAmount,
+    },
+  });
+}
+

@@ -36,6 +36,8 @@ import {
   getCropEvidence,
   getFarmerDisasters,
   getFarmerClaims,
+  getAllClaimsForOfficer,
+  updateClaimDecisionInFirestore,
   saveField,
   saveCrop,
   saveEvidence,
@@ -119,9 +121,20 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { farmerProfile, user } = useAuth();
-  const [role, setRole] = useState<UserRole>("FARMER");
+  const { farmerProfile, user, userRole, officerProfile } = useAuth();
+  const [role, setRole] = useState<UserRole>(() => {
+    if (userRole === "officer") return "OFFICER";
+    return "FARMER";
+  });
   const [language, setLanguage] = useState<LanguageCode>("en");
+
+  useEffect(() => {
+    if (userRole === "officer") {
+      setRole("OFFICER");
+    } else if (userRole === "farmer") {
+      setRole("FARMER");
+    }
+  }, [userRole]);
 
   // Fallback initial farmer profile based on Auth
   const [farmer, setFarmer] = useState<FarmerProfile>(() => {
@@ -149,7 +162,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   });
 
-  const [officer] = useState<OfficerProfile>(initialOfficerProfile);
+  const [officer, setOfficer] = useState<OfficerProfile>(() => {
+    if (officerProfile) return officerProfile;
+    return initialOfficerProfile;
+  });
+
+  useEffect(() => {
+    if (officerProfile) {
+      setOfficer(officerProfile);
+    }
+  }, [officerProfile]);
   const [fields, setFields] = useState<FieldRecord[]>([]);
   const [activeFieldId, setActiveFieldId] = useState<string>("");
   const [crops, setCrops] = useState<CropRecord[]>([]);
@@ -280,14 +302,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     []
   );
 
-  // Trigger data load when user logs in or profile changes
+  // Trigger data load when user logs in, role changes, or profile changes
   useEffect(() => {
-    if (user?.uid && farmerProfile) {
+    if (!user?.uid) {
+      setIsLoadingFirestore(false);
+      return;
+    }
+    if (userRole === "officer") {
+      setIsLoadingFirestore(true);
+      getAllClaimsForOfficer()
+        .then((firestoreClaims) => {
+          const claimRecords = firestoreClaims.map((c) => claimToRecord(c, c.farmerId || "FMR001"));
+          setClaims(claimRecords);
+          if (claimRecords.length > 0) setActiveClaimId(claimRecords[0].id);
+          else setActiveClaimId(null);
+        })
+        .catch((err) => console.error("Failed to load officer claims:", err))
+        .finally(() => setIsLoadingFirestore(false));
+    } else if (farmerProfile) {
       loadFarmerData(user.uid, farmerProfile.farmerId || farmerProfile.id || user.uid);
     } else {
       setIsLoadingFirestore(false);
     }
-  }, [user?.uid, farmerProfile?.farmerId]);
+  }, [user?.uid, userRole, farmerProfile?.farmerId]);
 
   // When active field changes, ensure active crop is synced
   useEffect(() => {
@@ -316,15 +353,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Fetch weather for active field if exists
   useEffect(() => {
     const activeField = fields.find((f) => f.id === activeFieldId);
-    if (!activeField || !activeField.centerLat) return;
+    if (!activeField || activeField.centerLat == null || activeField.centerLng == null) {
+      setWeatherData(null);
+      setIsWeatherLoading(false);
+      return;
+    }
 
     setIsWeatherLoading(true);
+
+    // Dynamic date range: use active disaster report date if exists (+/- 3 days), else past 7 days up to today
+    const activeDisaster = disasterReports.find((d) => d.fieldId === activeFieldId);
+    let startDate: string;
+    let endDate: string;
+
+    if (activeDisaster && activeDisaster.date) {
+      const d = new Date(activeDisaster.date);
+      const startD = new Date(d);
+      startD.setDate(startD.getDate() - 3);
+      const endD = new Date(d);
+      endD.setDate(endD.getDate() + 3);
+      startDate = startD.toISOString().split("T")[0];
+      endDate = endD.toISOString().split("T")[0];
+    } else {
+      const today = new Date();
+      const startD = new Date();
+      startD.setDate(startD.getDate() - 7);
+      startDate = startD.toISOString().split("T")[0];
+      endDate = today.toISOString().split("T")[0];
+    }
+
     fetch(
-      `/api/weather?lat=${activeField.centerLat}&lng=${activeField.centerLng}&startDate=2026-08-18&endDate=2026-08-25`
+      `/api/weather?lat=${activeField.centerLat}&lng=${activeField.centerLng}&startDate=${startDate}&endDate=${endDate}`
     )
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch weather data");
+        return res.json();
+      })
       .then((data) => {
-        if (data.daily) {
+        if (data && data.daily && data.daily.time) {
           const days = data.daily.time || [];
           const rain = data.daily.precipitation_sum || [];
           const temps = data.daily.temperature_2m_max || [];
@@ -332,12 +398,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
           const dailyPoints = days.map((day: string, idx: number) => ({
             date: day,
-            maxTempC: temps[idx] || 30,
-            rainfallMm: rain[idx] || 0,
-            windSpeedKmh: winds[idx] || 15,
+            maxTempC: temps[idx] ?? 0,
+            rainfallMm: rain[idx] ?? 0,
+            windSpeedKmh: winds[idx] ?? 0,
             condition:
-              rain[idx] > 30 ? "Heavy Rain" : rain[idx] > 5 ? "Moderate Rain" : "Sunny / Clear",
-            isExtremeEvent: rain[idx] > 35,
+              (rain[idx] || 0) > 25 ? "Heavy Rain" : (rain[idx] || 0) > 5 ? "Moderate Rain" : "Clear / Sunny",
+            isExtremeEvent: (rain[idx] || 0) > 30,
           }));
 
           setWeatherData({
@@ -345,18 +411,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             location: { lat: activeField.centerLat, lng: activeField.centerLng },
             daily: dailyPoints,
             correlationSummary: data.correlationSummary || {
-              peakRainfallDate: "2026-08-22",
-              peakRainfallMm: 94.2,
-              extremeEventConfirmed: true,
-              eventLabel: "Heavy Precipitation Anomaly",
-              correlationStatement: "Recorded rainfall peaks align with weather telemetry.",
+              peakRainfallDate: days[0] || startDate,
+              peakRainfallMm: 0,
+              peakWindSpeedKmh: 0,
+              avgMaxTempC: 0,
+              extremeEventConfirmed: false,
+              eventLabel: "Meteorological Monitored Window",
+              correlationStatement: "Live telemetry fetched from Open-Meteo archive/forecast.",
             },
           });
+        } else {
+          setWeatherData(null);
         }
       })
-      .catch((err) => console.warn("Weather fetch error:", err))
+      .catch((err) => {
+        console.warn("Weather fetch error:", err);
+        setWeatherData(null);
+      })
       .finally(() => setIsWeatherLoading(false));
-  }, [activeFieldId, fields]);
+  }, [activeFieldId, fields, disasterReports]);
 
   // Calculate evidence completeness for selected field
   const relevantEvidence = evidenceList.filter((e) => e.fieldId === activeFieldId);

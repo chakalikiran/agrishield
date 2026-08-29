@@ -39,6 +39,39 @@ export const OfficerDashboard: React.FC = () => {
   const selectedClaim = claims.find((c) => c.id === selectedClaimId) || claims[0];
   const selectedField = fields.find((f) => f.id === selectedClaim?.fieldId) || fields[0];
 
+  if (claims.length === 0) {
+    return (
+      <div className="space-y-4">
+        {/* Officer Header / Welcome Banner */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                  AIC Officer Portal &bull; {officer.assignedDistrict || "Krishna"} District
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mt-1">
+                Crop Insurance Evidence Review & Claim Adjudication
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Assessor: {officer.name} ({officer.badgeNumber || officer.id}) &bull; Human-in-the-Loop AI Decision Support
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-xs">
+          <ShieldCheck className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-slate-800">No claims available for review.</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+            Submitted insurance claims from farmers will appear here automatically for verification, multi-point geo-evidence inspection, and adjudication.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Filtering
   const filteredClaims = claims.filter((c) => {
     const matchesStatus = filterStatus === "ALL" || c.status === filterStatus;

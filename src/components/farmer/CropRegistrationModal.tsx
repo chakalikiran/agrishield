@@ -30,7 +30,7 @@ export const CropRegistrationModal: React.FC<{
     try {
       await registerCrop({
         fieldId: effectiveFieldId,
-        farmerId: farmer.farmerId || farmer.id,
+        farmerId: farmer?.farmerId || farmer?.id || "FMR-001",
         cropType: cropType,
         variety: variety,
         sowingDate: sowingDate,

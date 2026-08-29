@@ -5,20 +5,18 @@ import { LanguageCode } from "../../types";
 import { FarmerProfileModal } from "../farmer/FarmerProfileModal";
 import {
   Globe,
-  User,
-  Building2,
   Sparkles,
   Wifi,
   WifiOff,
   RotateCcw,
   LogOut,
-  UserCheck,
+  Building2,
+  User,
 } from "lucide-react";
 
 export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalkthrough }) => {
   const {
     role,
-    setRole,
     language,
     setLanguage,
     isOnline,
@@ -27,22 +25,24 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
     t,
   } = useApp();
 
-  const { farmerProfile, logout } = useAuth();
+  const { farmerProfile, officerProfile, logout } = useAuth();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+
+  const isOfficer = role === "OFFICER" || role === "officer";
 
   return (
     <header className="sticky top-0 z-40 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 shrink-0 shadow-xs">
       <div className="mx-auto max-w-7xl w-full flex items-center justify-between gap-3">
         {/* Brand & Portal Label */}
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center text-white shrink-0 shadow-xs">
+          <div className={`w-8 h-8 rounded flex items-center justify-center text-white shrink-0 shadow-xs ${isOfficer ? "bg-blue-600" : "bg-emerald-600"}`}>
             <div className="w-3.5 h-3.5 border-2 border-white rotate-45" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold tracking-tight text-emerald-900 flex items-center gap-1.5">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
               <span>AgriShield</span>
               <span className="font-normal text-slate-400 text-xs sm:text-sm">
-                | {role === "FARMER" ? "Farmer Portal" : "Insurance Portal"}
+                | {isOfficer ? "Insurance Officer Portal" : "Farmer Portal"}
               </span>
             </h1>
           </div>
@@ -50,8 +50,8 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
 
         {/* Right Controls Hub */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Authenticated Farmer Profile Chip */}
-          {farmerProfile && (
+          {/* Authenticated Profile Chip */}
+          {!isOfficer && farmerProfile && (
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
@@ -68,46 +68,29 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
             </button>
           )}
 
-          {/* Interactive Guide Pill */}
-          <button
-            type="button"
-            onClick={onOpenWalkthrough}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 transition cursor-pointer shadow-2xs"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-            <span className="hidden sm:inline">Guide</span>
-          </button>
+          {isOfficer && officerProfile && (
+            <div className="flex items-center bg-blue-50 rounded-lg px-2.5 py-1 space-x-1.5 border border-blue-200">
+              <Building2 className="w-3 h-3 text-blue-600" />
+              <span className="text-[11px] font-bold text-blue-900">
+                {officerProfile.name}
+              </span>
+              <span className="text-[10px] font-mono text-blue-700 bg-blue-100 px-1 py-0.2 rounded">
+                {officerProfile.officerId}
+              </span>
+            </div>
+          )}
 
-          {/* Role Toggle */}
-          <div className="flex items-center rounded-lg bg-slate-100 p-0.5 border border-slate-200">
+          {/* Interactive Guide Pill (Farmer only) */}
+          {!isOfficer && (
             <button
               type="button"
-              onClick={() => setRole("FARMER")}
-              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
-                role === "FARMER"
-                  ? "bg-white text-slate-900 shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
+              onClick={onOpenWalkthrough}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 transition cursor-pointer shadow-2xs"
             >
-              <User className="h-3.5 w-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">{t.farmerView}</span>
-              <span className="sm:hidden">Farmer</span>
+              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Guide</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => setRole("OFFICER")}
-              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
-                role === "OFFICER"
-                  ? "bg-white text-slate-900 shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <Building2 className="h-3.5 w-3.5 text-blue-600" />
-              <span className="hidden sm:inline">{t.officerView}</span>
-              <span className="sm:hidden">Officer</span>
-            </button>
-          </div>
+          )}
 
           {/* Language Selector */}
           <div className="relative flex items-center">
@@ -170,4 +153,3 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
     </header>
   );
 };
-

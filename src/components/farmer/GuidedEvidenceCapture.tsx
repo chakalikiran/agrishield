@@ -214,8 +214,8 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
     if (!capturedImage || !gpsCoords) return;
 
     await captureEvidence({
-      farmerId: activeField.farmerId,
-      fieldId: activeField.id,
+      farmerId: activeField?.farmerId || "FMR-001",
+      fieldId: activeField?.id || "FLD-001",
       cropId: activeCrop?.id || "CRP001",
       imageUrl: capturedImage,
       lat: gpsCoords.lat,
