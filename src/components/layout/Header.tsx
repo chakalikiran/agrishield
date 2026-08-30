@@ -11,6 +11,8 @@ import {
   LogOut,
   Building2,
   User,
+  Menu,
+  X,
 } from "lucide-react";
 
 export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalkthrough }) => {
@@ -25,6 +27,7 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
 
   const { farmerProfile, officerProfile, logout } = useAuth();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   const isOfficer = role === "OFFICER" || role === "officer";
 
@@ -47,7 +50,7 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
         </div>
 
         {/* Right Controls Hub */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="hidden sm:flex items-center space-x-2 sm:space-x-3">
           {/* Authenticated Profile Chip */}
           {!isOfficer && farmerProfile && (
             <button
@@ -131,6 +134,19 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
             <span className="hidden md:inline text-xs font-semibold">{t.logout}</span>
           </button>
         </div>
+
+        {/* Mobile menu toggle */}
+        <div className="sm:hidden flex items-center">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((s) => !s)}
+            className="p-2 rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition"
+            aria-expanded={mobileMenuOpen}
+            aria-label="Open menu"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Farmer Profile Modal */}
@@ -138,6 +154,55 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
       />
+
+      {/* Mobile menu panel - stacks controls for small screens */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden absolute top-14 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-md">
+          <div className="mx-auto max-w-7xl w-full px-3 sm:px-6">
+            <div className="flex flex-col gap-2 py-3">
+              {/* Profile / identity */}
+              {!isOfficer && farmerProfile && (
+                <button onClick={() => { setIsProfileModalOpen(true); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-slate-50">
+                  <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full mt-0.5" />
+                  <div className="text-sm font-bold truncate">{farmerProfile.name}</div>
+                </button>
+              )}
+
+              {/* Guide */}
+              {!isOfficer && (
+                <button onClick={() => { onOpenWalkthrough(); setMobileMenuOpen(false); }} className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-50">
+                  <Sparkles className="h-4 w-4 text-emerald-600" />
+                  <div className="text-sm font-semibold">{t.guide || "Guide"}</div>
+                </button>
+              )}
+
+              {/* Language + toggles */}
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-slate-400 mt-0.5" />
+                <select value={language} onChange={(e) => { setLanguage(e.target.value as LanguageCode); setMobileMenuOpen(false); }} className="rounded border border-slate-200 bg-slate-50 pl-2 pr-2 py-1 text-sm">
+                  <option value="en">EN</option>
+                  <option value="hi">हिंदी (HI)</option>
+                  <option value="te">తెలుగు (TE)</option>
+                  <option value="ta">தமிழ் (TA)</option>
+                  <option value="mr">मराठी (MR)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button onClick={() => { toggleSimulatedOffline(); setMobileMenuOpen(false); }} className="inline-flex items-center gap-2 px-3 py-2 rounded bg-slate-50 border border-slate-200 text-sm">
+                  {isOnline ? <Wifi className="h-4 w-4 text-emerald-600" /> : <WifiOff className="h-4 w-4 text-amber-600" />}
+                  <span className="sr-only">Toggle offline</span>
+                </button>
+
+                <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="inline-flex items-center gap-2 px-3 py-2 rounded bg-white border border-slate-200 text-sm">
+                  <LogOut className="h-4 w-4" />
+                  <span className="ml-1">{t.logout}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

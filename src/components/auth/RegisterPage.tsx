@@ -121,7 +121,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
               {t["farmerProfileEnrollment"] || "Farmer Profile & Insurance Enrollment"}
             </h3>
             <p className="text-xs text-slate-500">
-              {t["farmerProfileHint"] || "A unique Farmer ID (e.g. FMR001) will be generated and saved to your Firestore profile."}
+              {t["farmerProfileHint"] || "A unique Farmer ID (e.g. FMR001) will be generated and securely saved with your profile."}
             </p>
           </div>
 
@@ -215,7 +215,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  {t["villageLabel"] || "Village / Gram Panchayat *"}
+                  {t["villageLabel"] || "Village/Gram Panchayat *"}
                 </label>
                 <input
                   type="text"
@@ -223,13 +223,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
                   value={formData.village}
                   onChange={(e) => handleChange("village", e.target.value)}
                   placeholder="e.g. Kankipadu"
-                  className="block w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-emerald-600 bg-slate-50/50"
+                  className="block w-full h-9 px-2.5 py-1.5 text-xs border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-emerald-600 bg-slate-50/50"
                 />
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  {t["districtLabel"] || "District / Mandal *"}
+                  {t["districtLabel"] || "District/Mandal *"}
                 </label>
                 <input
                   type="text"
@@ -237,7 +237,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
                   value={formData.district}
                   onChange={(e) => handleChange("district", e.target.value)}
                   placeholder="e.g. Krishna"
-                  className="block w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-emerald-600 bg-slate-50/50"
+                  className="block w-full h-9 px-2.5 py-1.5 text-xs border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-emerald-600 bg-slate-50/50"
                 />
               </div>
 
@@ -248,7 +248,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
                 <select
                   value={formData.state}
                   onChange={(e) => handleChange("state", e.target.value)}
-                  className="block w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-emerald-600 bg-slate-50/50"
+                  className="block w-full h-9 px-2.5 py-1.5 text-xs border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-emerald-600 bg-slate-50/50"
                 >
                   <option value="Andhra Pradesh">Andhra Pradesh</option>
                   <option value="Telangana">Telangana</option>
@@ -349,7 +349,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
         {/* Security notice */}
         <div className="mt-4 flex items-center justify-center gap-1.5 text-[10px] text-slate-500">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-          <span>{t["secureProfileNotice"] || "Profile documents are securely stored in Firestore under /farmers/{uid}"}</span>
+          <span>{t["secureProfileNotice"] || "Your profile information is securely protected."}</span>
         </div>
       </div>
     </div>

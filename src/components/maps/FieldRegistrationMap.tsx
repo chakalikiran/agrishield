@@ -238,11 +238,11 @@ export const FieldRegistrationMap: React.FC<FieldRegistrationMapProps> = ({
       </div>
 
       {/* Map Canvas Container */}
-      <div className="relative w-full h-[320px] bg-slate-100">
+      <div className="relative w-full h-64 sm:h-[320px] md:h-96 bg-slate-100">
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
         {/* Live Area / Boundary Card Overlay */}
-        <div className="absolute top-2.5 left-2.5 z-[400] bg-white/95 backdrop-blur-xs border border-slate-200/90 rounded-md p-2.5 shadow-sm max-w-xs pointer-events-auto">
+        <div className="absolute top-2.5 left-2.5 z-[400] bg-white/95 backdrop-blur-xs border border-slate-200/90 rounded-md p-2.5 shadow-sm max-w-full sm:max-w-xs pointer-events-auto">
           <div className="flex items-center justify-between gap-3">
             <div>
               <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold block">

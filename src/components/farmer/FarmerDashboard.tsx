@@ -435,7 +435,7 @@ export const FarmerDashboard: React.FC = () => {
 
           {activeTab === "map" && activeField && (
             <div className="space-y-3">
-              <MultiPointDamageMap field={activeField} evidenceList={fieldEvidence} height="480px" />
+              <MultiPointDamageMap field={activeField} evidenceList={fieldEvidence} />
             </div>
           )}
 

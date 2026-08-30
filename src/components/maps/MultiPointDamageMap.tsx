@@ -9,7 +9,6 @@ interface MultiPointDamageMapProps {
   evidenceList: EvidenceRecord[];
   selectedEvidenceId?: string | null;
   onSelectEvidence?: (evidence: EvidenceRecord) => void;
-  height?: string;
 }
 
 export const MultiPointDamageMap: React.FC<MultiPointDamageMapProps> = ({
@@ -17,7 +16,6 @@ export const MultiPointDamageMap: React.FC<MultiPointDamageMapProps> = ({
   evidenceList,
   selectedEvidenceId,
   onSelectEvidence,
-  height = "450px",
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -162,7 +160,7 @@ export const MultiPointDamageMap: React.FC<MultiPointDamageMapProps> = ({
       </div>
 
       {/* Map Canvas */}
-      <div className="relative w-full" style={{ height }}>
+      <div className="relative w-full h-64 sm:h-72 md:h-[480px]">
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
         {/* Selected Evidence Detail Modal / Drawer Card */}

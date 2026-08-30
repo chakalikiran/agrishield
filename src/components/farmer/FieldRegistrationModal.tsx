@@ -147,7 +147,7 @@ export const FieldRegistrationModal: React.FC<{ isOpen: boolean; onClose: () => 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl max-w-3xl w-full p-4 sm:p-6 shadow-xl space-y-4 animate-in fade-in zoom-in-95 my-6 border border-slate-200">
+      <div className="bg-white rounded-xl w-full max-w-md sm:max-w-3xl p-4 sm:p-6 shadow-xl space-y-4 animate-in fade-in zoom-in-95 my-6 border border-slate-200 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">

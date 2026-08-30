@@ -100,7 +100,7 @@ export const FarmerProfileModal: React.FC<FarmerProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl max-w-2xl w-full p-5 sm:p-6 shadow-xl border border-slate-200 space-y-4 my-8 animate-in fade-in zoom-in-95">
+      <div className="bg-white rounded-xl w-full max-w-md sm:max-w-2xl p-4 sm:p-6 shadow-xl border border-slate-200 space-y-4 my-6 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <div className="flex items-center gap-2.5">

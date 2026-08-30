@@ -58,6 +58,10 @@ export const WeatherCorrelationPanel: React.FC = () => {
   const chartData = weatherData.daily;
   const summary = weatherData.correlationSummary;
 
+  // derive a few metrics from the daily series for display
+  const peakWindSpeedKmh = chartData.reduce((mx, d) => Math.max(mx, (d.windSpeedKmh || 0)), 0);
+  const avgMaxTempC = Math.round((chartData.reduce((s, d) => s + (d.maxTempC || 0), 0) / (chartData.length || 1)) * 10) / 10;
+
   // Transparent correlation status calculation based on actual weather & disaster record
   let correlationStatus = t["noDisasterReportFiled"] || "No disaster report filed";
   let correlationBadgeBg = "bg-slate-50 text-slate-800 border-slate-200";
@@ -123,7 +127,7 @@ export const WeatherCorrelationPanel: React.FC = () => {
             {t["peakWindGusts"] || "Peak Wind Gusts"}
           </div>
           <div className="text-lg font-bold text-slate-900 mt-0.5">
-            {summary.peakWindSpeedKmh || 0} <span className="text-xs font-normal text-slate-500">km/h</span>
+            {peakWindSpeedKmh || 0} <span className="text-xs font-normal text-slate-500">km/h</span>
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
             {t["maxTelemetryRecorded"] || "Max telemetry recorded"}
@@ -136,7 +140,7 @@ export const WeatherCorrelationPanel: React.FC = () => {
             {t["avgMaxTemp"] || "Avg Max Temp"}
           </div>
           <div className="text-lg font-bold text-slate-900 mt-0.5">
-            {summary.avgMaxTempC || 0} <span className="text-xs font-normal text-slate-500">°C</span>
+            {avgMaxTempC || 0} <span className="text-xs font-normal text-slate-500">°C</span>
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
             {t["monitoredWindowAverage"] || "Monitored window average"}

@@ -105,10 +105,10 @@ export const EvidenceTimeline: React.FC<{
       </div>
 
       {/* Visual Timeline Spine */}
-      <div className="relative pl-5 sm:pl-7 before:absolute before:left-2.5 sm:before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-300">
+      <div className="relative pl-6 sm:pl-8 before:absolute before:left-3 sm:before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-300">
         {/* 1. Sowing Marker */}
         <div className="relative mb-5">
-          <div className="absolute -left-5 sm:-left-7 top-1 h-5 w-5 rounded-full bg-emerald-700 border-2 border-white shadow flex items-center justify-center text-white text-[10px] font-bold">
+          <div className="absolute -left-6 sm:-left-8 top-1 h-5 w-5 rounded-full bg-emerald-700 border-2 border-white shadow flex items-center justify-center text-white text-[10px] font-bold">
             🌱
           </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50/90 p-3 shadow-2xs">
@@ -138,10 +138,10 @@ export const EvidenceTimeline: React.FC<{
             ev.evidenceType === "Close-up";
 
           return (
-            <div key={ev.id} className="relative mb-5 group">
+            <div key={`evidence-${ev.id}`} className="relative mb-5 group">
               {/* Timeline Pin */}
               <div
-                className={`absolute -left-5 sm:-left-7 top-1.5 h-5 w-5 rounded-full border-2 border-white shadow flex items-center justify-center text-white text-[10px] font-bold ${
+                className={`absolute -left-6 sm:-left-8 top-1.5 h-5 w-5 rounded-full border-2 border-white shadow flex items-center justify-center text-white text-[10px] font-bold ${
                   isPost
                     ? ev.damageClassification === "Severe"
                       ? "bg-rose-600"
@@ -252,8 +252,8 @@ export const EvidenceTimeline: React.FC<{
 
         {/* 3. Reported Disaster Event Node */}
         {fieldDisasters.map((disaster) => (
-          <div key={disaster.id} className="relative mb-5">
-            <div className="absolute -left-5 sm:-left-7 top-1 h-5 w-5 rounded-full bg-rose-600 border-2 border-white shadow flex items-center justify-center text-white text-[10px] font-bold animate-pulse">
+          <div key={`disaster-${disaster.id}`} className="relative mb-5">
+            <div className="absolute -left-6 sm:-left-8 top-1 h-5 w-5 rounded-full bg-rose-600 border-2 border-white shadow flex items-center justify-center text-white text-[10px] font-bold animate-pulse">
               ⚡
             </div>
             <div className="rounded-lg border border-rose-300 bg-rose-50/80 p-3 shadow-2xs">

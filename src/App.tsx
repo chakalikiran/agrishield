@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AppProvider, useApp } from "./context/AppContext";
+import { translations } from "./lib/i18n";
 import { Header } from "./components/layout/Header";
 import { FarmerDashboard } from "./components/farmer/FarmerDashboard";
 import { OfficerDashboard } from "./components/officer/OfficerDashboard";
@@ -51,7 +52,9 @@ const MainContent: React.FC = () => {
 
 const AuthGate: React.FC = () => {
   const { user, userRole, farmerProfile, officerProfile, loading } = useAuth();
-  const { t } = useApp();
+  // Avoid calling useApp here (AuthGate must be usable before AppProvider is mounted).
+  const lang = typeof window !== "undefined" ? (window.localStorage.getItem("agrishield-language") || "en") : "en";
+  const t = translations[lang] || translations.en;
   const [authView, setAuthView] = useState<"login" | "register">("login");
 
   if (loading) {

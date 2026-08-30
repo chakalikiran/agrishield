@@ -437,34 +437,52 @@ export async function getFarmerClaims(uid: string): Promise<FirestoreClaim[]> {
 
 export async function saveClaim(uid: string, claim: FirestoreClaim): Promise<FirestoreClaim> {
   if (!uid) throw new Error("UID required");
-  const claimData = {
+  const claimData: any = {
     ...claim,
     farmerId: claim.farmerId || uid,
     createdAt: claim.createdAt || new Date().toISOString(),
   };
-  const topRef = doc(db, "claims", claim.claimId);
-  await setDoc(topRef, claimData, { merge: true });
 
-  const docRef = doc(db, "farmers", uid, "claims", claim.claimId);
-  await setDoc(docRef, claimData, { merge: true });
-  return claimData;
+  // If caller provided a claimId, use it. Otherwise create a new top-level doc with auto-ID.
+  let finalClaimId = claim.claimId || claim.id || null;
+
+  if (finalClaimId) {
+    const topRef = doc(db, "claims", finalClaimId);
+    await setDoc(topRef, { ...claimData, claimId: finalClaimId }, { merge: true });
+  } else {
+    // create with auto-id
+    const colRef = collection(db, "claims");
+    const added = await (await import("firebase/firestore")).addDoc(colRef, claimData);
+    finalClaimId = added.id;
+    claimData.claimId = finalClaimId;
+  }
+
+  // Also mirror under farmer-scoped path for backward compatibility
+  const farmerDocRef = doc(db, "farmers", uid, "claims", finalClaimId!);
+  await setDoc(farmerDocRef, { ...claimData, claimId: finalClaimId }, { merge: true });
+
+  return { ...claimData, claimId: finalClaimId } as FirestoreClaim;
 }
 
 export function subscribeToClaims(
   userRole: "farmer" | "officer" | null,
   uid: string | undefined,
-  callback: (claims: FirestoreClaim[]) => void
+  callback: (claims: FirestoreClaim[]) => void,
+  onError?: (err: any, info?: string) => void
 ): () => void {
   if (!userRole || !uid) {
-    callback([]);
+    // Do not clear existing claims silently; caller should handle empty auth state.
     return () => {};
   }
 
   let q;
+  let qInfo = "";
   if (userRole === "officer") {
     q = collection(db, "claims");
+    qInfo = "collection(claims)";
   } else {
     q = query(collection(db, "claims"), where("farmerId", "==", uid));
+    qInfo = `collection(claims) where farmerId == ${uid}`;
   }
 
   return onSnapshot(
@@ -486,8 +504,9 @@ export function subscribeToClaims(
       callback(list);
     },
     (err) => {
-      console.warn("Claims snapshot error:", err);
-      callback([]);
+      console.error("Claims snapshot error for query:", qInfo, err);
+      if (onError) onError(err, qInfo);
+      // Do not call callback([]) here — avoid silently clearing UI on permission/query errors.
     }
   );
 }

@@ -1,8 +1,56 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOfficer() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'officer';
+    }
+
+    // Top-level claims collection: farmers create their own claims; officers may read all claims
+    match /claims/{claimId} {
+      // Farmers may create claims only for themselves
+      allow create: if isAuthenticated()
+        && request.resource.data.farmerId == request.auth.uid
+        && (request.resource.data.claimId == claimId || request.resource.data.claimId == null);
+
+      // Farmers may read their own claims; officers may read all claims if their users/{uid}.role == 'officer'
+      allow get: if isAuthenticated() && (
+        resource.data.farmerId == request.auth.uid || isOfficer()
+      );
+      // Allow listing if officer, or if the client query is explicitly constrained to the
+      // authenticated farmer's own UID (so farmers can query their own claims).
+      allow list: if isAuthenticated() && (
+        isOfficer() || (request.query != null && request.query.where('farmerId', '==', request.auth.uid))
+      );
+
+      // Officers may update only review-related fields (status, officerDecision, reviewedBy, reviewedAt, officerRemarks)
+      allow update: if isOfficer() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'officerDecision',
+          'reviewedBy',
+          'reviewedAt',
+          'officerRemarks'
+        ]);
+
+      // Deletions are not permitted by any client
+      allow delete: if false;
+    }
+
+    // Farmer-scoped collections (fields, crops, disasters, claims) — farmers may manage their own data
+    match /farmers/{uid}/{subCollection}/{docId} {
+      allow create: if isAuthenticated() && request.auth.uid == uid;
+      allow get, list: if isAuthenticated() && (request.auth.uid == uid || isOfficer());
+      allow update, delete: if isAuthenticated() && (request.auth.uid == uid || isOfficer());
+    }
+
+    // Fallback: require authentication for other documents
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAuthenticated();
     }
   }
 }

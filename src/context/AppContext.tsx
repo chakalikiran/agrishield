@@ -347,16 +347,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       loadFarmerData(user.uid, farmerProfile.farmerId || farmerProfile.id || user.uid);
     }
 
-    const unsubscribe = subscribeToClaims(userRole, user.uid, (firestoreClaims) => {
-      const claimRecords = firestoreClaims.map((c) => claimToRecord(c, c.farmerId || user.uid));
-      setClaims(claimRecords);
-      if (claimRecords.length > 0 && !activeClaimId) {
-        setActiveClaimId(claimRecords[0].id);
-      } else if (claimRecords.length === 0) {
-        setActiveClaimId(null);
+    const unsubscribe = subscribeToClaims(
+      userRole,
+      user.uid,
+      (firestoreClaims) => {
+        const claimRecords = firestoreClaims.map((c) => claimToRecord(c, c.farmerId || user.uid));
+        setClaims(claimRecords);
+        if (claimRecords.length > 0 && !activeClaimId) {
+          setActiveClaimId(claimRecords[0].id);
+        } else if (claimRecords.length === 0) {
+          setActiveClaimId(null);
+        }
+        setIsLoadingFirestore(false);
+      },
+      (err, info) => {
+        console.error("Failed to subscribe to claims. Query:", info, "Error:", err);
+        setFirestoreError(err?.message || String(err));
+        setIsLoadingFirestore(false);
       }
-      setIsLoadingFirestore(false);
-    });
+    );
 
     return () => {
       unsubscribe();

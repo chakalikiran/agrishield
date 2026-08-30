@@ -36,11 +36,24 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
     disasterReportId: "",
     submittedAt: new Date().toISOString(),
     aiDamageAggregate: { healthyPercent: 0, moderatePercent: 0, severePercent: 0, estimatedDamagePercent: 0, totalImagesAnalyzed: 0 },
-    preliminaryLossEstimate: { fieldAreaAcres: 0, estimatedDamagePercent: 0, estimatedAffectedAcres: 0, sumInsuredPerAcreINR: 38500, estimatedLossAmountINR: 0 }
+    preliminaryLossEstimate: { fieldAreaAcres: 0, estimatedDamagePercent: 0, estimatedAffectedAcres: 0, sumInsuredPerAcreINR: 38500, estimatedLossAmountINR: 0 },
+    officerDecision: undefined as any,
   };
-  const defaultField = { id: "FLD-001", name: "Primary Field", surveyNumber: "123/1", approxAreaAcres: 2.0, soilType: "Alluvial" };
-  const defaultCrop = { id: "CRP-001", cropType: "Rice (Paddy)", variety: "BPT 5204", sowingDate: "2026-06-01", currentStage: "Vegetative" };
-  const defaultDisaster = { id: "DR-001", disasterType: "Heavy Rainfall", date: "2026-08-20", description: "Monsoon downpour" };
+  const defaultField: any = {
+    id: "FLD-001",
+    name: "Primary Field",
+    surveyNumber: "123/1",
+    approxAreaAcres: 2.0,
+    soilType: "Alluvial",
+    farmerId: "FMR-001",
+    coordinates: [[16.5116, 80.7005] as [number, number]],
+    centerLat: 16.5116,
+    centerLng: 80.7005,
+    registeredAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+  const defaultCrop = { id: "CRP-001", cropType: "Rice (Paddy)", variety: "BPT 5204", sowingDate: "2026-06-01", currentStage: "Vegetative", fieldId: defaultField.id, farmerId: "FMR-001", expectedHarvestDate: "2026-11-20", season: "Kharif 2026", cultivatedAreaAcres: 2 };
+  const defaultDisaster = { id: "DR-001", disasterType: "Heavy Rainfall", date: "2026-08-20", time: "12:00", description: "Monsoon downpour", status: "Under Review" };
   const defaultInsurance = { policyNumber: "PMFBY/IN/2026/000000", sumInsuredPerAcre: 38500 };
 
   const targetClaimId = claimId || activeClaimId || (claims[0]?.id ?? "");
@@ -265,7 +278,7 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
             <MapPin className="h-3.5 w-3.5 text-emerald-700" />
             5. Multi-Point Geo-Tagged Damage Distribution Map
           </h3>
-          <MultiPointDamageMap field={field} evidenceList={fieldEvidence} height="320px" />
+          <MultiPointDamageMap field={field} evidenceList={fieldEvidence} />
         </div>
 
         {/* Section 5: Before vs After Photographic Baseline */}

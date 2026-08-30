@@ -209,9 +209,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
         imageFileOrDataUrl: capturedFile || capturedImage,
         lat: gpsCoords.lat,
         lng: gpsCoords.lng,
-        latitude: gpsCoords.lat,
-        longitude: gpsCoords.lng,
-        capturedAt: new Date().toISOString(),
+        
         cropStage: activeCrop?.currentStage || "Flowering",
         evidenceType: currentStep.evidenceType,
         stepName: `Step ${currentStep.stepNumber}: ${currentStep.title}`,
@@ -331,7 +329,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
       </div>
 
       {/* Camera / Viewport Area */}
-      <div className="relative rounded-lg border border-dashed border-slate-300 bg-slate-50/50 overflow-hidden min-h-[260px] flex flex-col items-center justify-center p-3">
+      <div className="relative rounded-lg border border-dashed border-slate-300 bg-slate-50/50 overflow-hidden min-h-56 sm:min-h-[260px] flex flex-col items-center justify-center p-3">
         {capturedImage ? (
           <div className="relative w-full max-w-md rounded-lg overflow-hidden shadow-2xs border border-slate-200">
             <img

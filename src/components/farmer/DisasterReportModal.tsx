@@ -28,24 +28,38 @@ export const DisasterReportModal: React.FC<{
   const [description, setDescription] = useState<string>("Continuous unseasonal cloudburst and flash rainfall causing canal overflow and waterlogging across the northern plot.");
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
-  if (!isOpen) return null;
 
   const currentField = fields.find((f) => f.id === selectedFieldId) || fields[0] || { id: "FLD001", farmerId: "FMR-001" };
   const currentCrop = crops.find((c) => c.fieldId === selectedFieldId) || crops[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    reportDisaster({
-      fieldId: selectedFieldId,
-      cropId: currentCrop?.id || "CRP001",
-      farmerId: currentField?.farmerId || "FMR-001",
-      disasterType: disasterType,
-      date: eventDate,
-      time: eventTime,
-      description: description,
-      photoUrl: sampleCropImages.postDisasterWide,
-    });
-    setIsSuccess(true);
+    setSubmitError(null);
+    setIsSubmitting(true);
+    try {
+      await reportDisaster({
+        fieldId: selectedFieldId,
+        cropId: currentCrop?.id || "CRP001",
+        farmerId: currentField?.farmerId || "FMR-001",
+        disasterType: disasterType,
+        date: eventDate,
+        time: eventTime,
+        description: description,
+        photoUrl: sampleCropImages.postDisasterWide,
+      });
+      setIsSuccess(true);
+    } catch (err: any) {
+      console.error("Failed to submit disaster/claim:", err);
+      setSubmitError(err?.message || String(err) || "Failed to submit disaster report. Please try again.");
+      setIsSuccess(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -82,6 +96,12 @@ export const DisasterReportModal: React.FC<{
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+            {submitError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-800">
+                <strong className="block font-semibold">Submission Error</strong>
+                <div>{submitError}</div>
+              </div>
+            )}
             <div>
               <label className="block font-semibold text-slate-700 mb-1 text-[11px] uppercase tracking-wider">{t["selectImpactedField"] || "Select Impacted Field"}</label>
               <select value={selectedFieldId} onChange={(e) => setSelectedFieldId(e.target.value)} className="w-full rounded border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-emerald-600">
