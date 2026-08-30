@@ -15,8 +15,6 @@ import {
   WifiOff,
   CloudRain,
   Sprout,
-  Database,
-  Trash2,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
@@ -48,8 +46,6 @@ export const FarmerDashboard: React.FC = () => {
     isLoadingFirestore,
     firestoreError,
     clearFirestoreError,
-    seedDemoData,
-    clearAllUserData,
     t,
   } = useApp();
 
@@ -60,7 +56,6 @@ export const FarmerDashboard: React.FC = () => {
   const [isFieldModalOpen, setIsFieldModalOpen] = useState<boolean>(false);
   const [isDisasterModalOpen, setIsDisasterModalOpen] = useState<boolean>(false);
   const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
-  const [isDevMenuOpen, setIsDevMenuOpen] = useState<boolean>(false);
 
   const activeField = fields.find((f) => f.id === activeFieldId) || fields[0];
   const fieldCrops = fields.length > 0 && activeField ? crops.filter((c) => c.fieldId === activeField.id) : [];
@@ -192,49 +187,6 @@ export const FarmerDashboard: React.FC = () => {
                 </button>
               </>
             )}
-
-            {/* Optional Dev Seed Toolbar */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsDevMenuOpen(!isDevMenuOpen)}
-                className="inline-flex items-center gap-1 rounded-lg border border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-2 transition"
-                title="Development utilities for Firestore data"
-              >
-                <Database className="h-3 w-3 text-slate-500" />
-                <span>Dev Data</span>
-              </button>
-
-              {isDevMenuOpen && (
-                <div className="absolute right-0 mt-1 w-56 rounded-lg bg-white border border-slate-200 p-2 shadow-lg z-30 space-y-1.5 text-xs">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block px-1">
-                    Developer Utilities
-                  </span>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setIsDevMenuOpen(false);
-                      await seedDemoData();
-                    }}
-                    className="w-full text-left px-2 py-1.5 rounded hover:bg-emerald-50 text-emerald-800 font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Seed Demo Data (3 Fields)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setIsDevMenuOpen(false);
-                      await clearAllUserData();
-                    }}
-                    className="w-full text-left px-2 py-1.5 rounded hover:bg-rose-50 text-rose-700 font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Clear All My Data
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -305,15 +257,6 @@ export const FarmerDashboard: React.FC = () => {
             >
               <Plus className="h-4 w-4" />
               Register Your First Field
-            </button>
-
-            <button
-              type="button"
-              onClick={seedDemoData}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-3.5 py-2.5 transition cursor-pointer"
-            >
-              <Database className="h-3.5 w-3.5 text-slate-500" />
-              Load Demo Fields (Development Only)
             </button>
           </div>
         </div>

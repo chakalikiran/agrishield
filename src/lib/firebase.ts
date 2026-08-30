@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { initializeFirestore, getFirestore, Firestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const cleanEnv = (val?: string): string => {
   if (!val) return "";
@@ -20,9 +21,10 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey && firebaseConfig.projectId
 );
 
-// Initialize single Firebase App and Auth/Firestore instances
+// Initialize single Firebase App, Auth, Firestore, and Storage instances
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth: Auth = getAuth(app);
+export const storage = getStorage(app);
 
 let firestoreInstance: Firestore;
 try {

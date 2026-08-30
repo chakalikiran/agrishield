@@ -28,7 +28,16 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
     t,
   } = useApp();
 
-  const defaultClaim = { id: "CLM-001", status: "Pending", fieldId: "", cropId: "", disasterReportId: "", submittedAt: new Date().toISOString() };
+  const defaultClaim = {
+    id: "CLM-001",
+    status: "Pending",
+    fieldId: "",
+    cropId: "",
+    disasterReportId: "",
+    submittedAt: new Date().toISOString(),
+    aiDamageAggregate: { healthyPercent: 0, moderatePercent: 0, severePercent: 0, estimatedDamagePercent: 0, totalImagesAnalyzed: 0 },
+    preliminaryLossEstimate: { fieldAreaAcres: 0, estimatedDamagePercent: 0, estimatedAffectedAcres: 0, sumInsuredPerAcreINR: 38500, estimatedLossAmountINR: 0 }
+  };
   const defaultField = { id: "FLD-001", name: "Primary Field", surveyNumber: "123/1", approxAreaAcres: 2.0, soilType: "Alluvial" };
   const defaultCrop = { id: "CRP-001", cropType: "Rice (Paddy)", variety: "BPT 5204", sowingDate: "2026-06-01", currentStage: "Vegetative" };
   const defaultDisaster = { id: "DR-001", disasterType: "Heavy Rainfall", date: "2026-08-20", description: "Monsoon downpour" };
@@ -68,7 +77,7 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
         </div>
         <h3 className="text-base font-bold text-slate-800">No active claim records found</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          Report a crop disaster or seed demo records to generate a consolidated PMFBY claim dossier.
+          Report a crop disaster or register a field to generate a consolidated PMFBY claim dossier.
         </p>
       </div>
     );

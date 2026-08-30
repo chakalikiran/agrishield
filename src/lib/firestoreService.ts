@@ -11,7 +11,8 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { ref, uploadBytes, uploadString, getDownloadURL } from "firebase/storage";
+import { db, storage } from "./firebase";
 import {
   FarmerProfile,
   FirestoreField,
@@ -295,6 +296,23 @@ export async function getAllFarmerEvidence(
   );
 }
 
+export async function uploadEvidenceImage(
+  uid: string,
+  fieldId: string,
+  cropId: string,
+  evidenceId: string,
+  fileOrDataUrl: File | string
+): Promise<string> {
+  const storageRef = ref(storage, `evidence/${uid}/${fieldId}/${cropId}/${evidenceId}.jpg`);
+  if (typeof fileOrDataUrl === "string") {
+    await uploadString(storageRef, fileOrDataUrl, "data_url");
+  } else {
+    await uploadBytes(storageRef, fileOrDataUrl);
+  }
+  const downloadUrl = await getDownloadURL(storageRef);
+  return downloadUrl;
+}
+
 export async function saveEvidence(
   uid: string,
   fieldId: string,
@@ -372,28 +390,28 @@ export async function saveDisaster(
 
 export function claimToRecord(c: FirestoreClaim, farmerId: string): ClaimRecord {
   return {
-    id: c.claimId,
+    id: c.claimId || c.id || "CLM-001",
     disasterReportId: c.disasterId || "",
     farmerId,
-    fieldId: c.fieldId,
+    fieldId: c.fieldId || "",
     cropId: c.cropId || "",
     status: (c.status as any) || "Under Review",
     claimDate: c.claimDate || c.createdAt?.split("T")[0] || "2026-08-23",
     evidenceCompleteness: c.evidenceCompleteness || 0,
     disasterType: (c.disasterType as any) || "Heavy Rainfall",
-    aiDamageAggregate: c.aiDamageAggregate || {
-      healthyPercent: 0,
-      moderatePercent: 0,
-      severePercent: 0,
-      estimatedDamagePercent: 0,
-      totalImagesAnalyzed: 0,
+    aiDamageAggregate: {
+      healthyPercent: c.aiDamageAggregate?.healthyPercent ?? 0,
+      moderatePercent: c.aiDamageAggregate?.moderatePercent ?? 0,
+      severePercent: c.aiDamageAggregate?.severePercent ?? 0,
+      estimatedDamagePercent: c.aiDamageAggregate?.estimatedDamagePercent ?? 0,
+      totalImagesAnalyzed: c.aiDamageAggregate?.totalImagesAnalyzed ?? 0,
     },
-    preliminaryLossEstimate: c.preliminaryLossEstimate || {
-      fieldAreaAcres: 0,
-      estimatedDamagePercent: 0,
-      estimatedAffectedAcres: 0,
-      sumInsuredPerAcreINR: 38500,
-      estimatedLossAmountINR: 0,
+    preliminaryLossEstimate: {
+      fieldAreaAcres: c.preliminaryLossEstimate?.fieldAreaAcres ?? 0,
+      estimatedDamagePercent: c.preliminaryLossEstimate?.estimatedDamagePercent ?? 0,
+      estimatedAffectedAcres: c.preliminaryLossEstimate?.estimatedAffectedAcres ?? 0,
+      sumInsuredPerAcreINR: c.preliminaryLossEstimate?.sumInsuredPerAcreINR ?? 38500,
+      estimatedLossAmountINR: c.preliminaryLossEstimate?.estimatedLossAmountINR ?? 0,
     },
     officerDecision: c.officerDecision,
   };

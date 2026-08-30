@@ -70,6 +70,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
 
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -92,7 +93,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
   const acquireGPSAndCapture = () => {
     setErrorMessage(null);
     if (!navigator.geolocation) {
-      setErrorMessage("Location permission is required for geo-tagged evidence.");
+      setErrorMessage("Location permission is required.");
       return;
     }
     setIsLocating(true);
@@ -109,7 +110,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
       (err) => {
         console.warn("GPS error:", err);
         setIsLocating(false);
-        setErrorMessage("Location permission is required for geo-tagged evidence.");
+        setErrorMessage("Location permission is required.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -121,14 +122,15 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
     if (!file) {
       return;
     }
+    setCapturedFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        handleImageCaptured(reader.result);
+        handleImageCaptured(reader.result, file);
       }
     };
     reader.onerror = () => {
-      setErrorMessage("Camera permission is required to capture evidence.");
+      setErrorMessage("Camera permission is required.");
     };
     reader.readAsDataURL(file);
   };
@@ -137,7 +139,6 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
     setErrorMessage(null);
     const file = e.target.files?.[0];
     if (file) {
-      // Also acquire GPS if not already acquired
       if (!gpsCoords && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -148,26 +149,28 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
             });
           },
           () => {
-            setErrorMessage("Location permission is required for geo-tagged evidence.");
+            setErrorMessage("Location permission is required.");
           }
         );
       }
 
+      setCapturedFile(file);
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === "string") {
-          handleImageCaptured(reader.result);
+          handleImageCaptured(reader.result, file);
         }
       };
       reader.onerror = () => {
-        setErrorMessage("Camera permission is required to capture evidence.");
+        setErrorMessage("Camera permission is required.");
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleImageCaptured = async (imgData: string) => {
+  const handleImageCaptured = async (imgData: string, file?: File) => {
     setCapturedImage(imgData);
+    if (file) setCapturedFile(file);
     setIsAnalyzing(true);
 
     try {
@@ -189,7 +192,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
   const handleSaveAndConfirm = async () => {
     if (!capturedImage || !gpsCoords) {
       if (!gpsCoords) {
-        setErrorMessage("Location permission is required for geo-tagged evidence.");
+        setErrorMessage("Location permission is required.");
       }
       return;
     }
@@ -203,6 +206,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
         fieldId: activeField?.id || "FLD-001",
         cropId: activeCrop?.id || "CRP001",
         imageUrl: capturedImage,
+        imageFileOrDataUrl: capturedFile || capturedImage,
         lat: gpsCoords.lat,
         lng: gpsCoords.lng,
         latitude: gpsCoords.lat,
@@ -222,6 +226,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
       if (nextIndex < GUIDED_STEPS.length) {
         setCurrentStepIndex(nextIndex);
         setCapturedImage(null);
+        setCapturedFile(null);
         setCurrentAIResult(null);
         setNotes("");
       } else {
@@ -237,7 +242,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
       }
     } catch (err) {
       console.error("Failed to upload evidence:", err);
-      setErrorMessage("Failed to upload evidence. Please try again.");
+      setErrorMessage("Unable to save evidence. Please try again.");
     } finally {
       setIsUploading(false);
     }

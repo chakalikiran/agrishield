@@ -85,12 +85,14 @@ export const OfficerDashboard: React.FC = () => {
   // Sorting
   const sortedClaims = [...filteredClaims].sort((a, b) => {
     if (sortBy === "damage") {
-      return b.aiDamageAggregate.estimatedDamagePercent - a.aiDamageAggregate.estimatedDamagePercent;
+      const dmgA = a.aiDamageAggregate?.estimatedDamagePercent || 0;
+      const dmgB = b.aiDamageAggregate?.estimatedDamagePercent || 0;
+      return dmgB - dmgA;
     }
     if (sortBy === "completeness") {
-      return b.evidenceCompleteness - a.evidenceCompleteness;
+      return (b.evidenceCompleteness || 0) - (a.evidenceCompleteness || 0);
     }
-    return new Date(b.claimDate).getTime() - new Date(a.claimDate).getTime();
+    return new Date(b.claimDate || 0).getTime() - new Date(a.claimDate || 0).getTime();
   });
 
   // Summary Metrics
@@ -98,7 +100,7 @@ export const OfficerDashboard: React.FC = () => {
   const underReviewCount = claims.filter((c) => c.status === "Under Review").length;
   const approvedCount = claims.filter((c) => c.status === "Approved").length;
   const totalLossEstimated = claims.reduce(
-    (acc, c) => acc + c.preliminaryLossEstimate.estimatedLossAmountINR,
+    (acc, c) => acc + (c.preliminaryLossEstimate?.estimatedLossAmountINR || 0),
     0
   );
 
@@ -106,7 +108,7 @@ export const OfficerDashboard: React.FC = () => {
     setDecisionModalType(type);
     if (type === "Approved") {
       setDecisionRemarks("Damage verified via multi-point geo-tagged evidence & Open-Meteo rainfall telemetry. Approved for DBT indemnity release.");
-      setApprovedAmount(selectedClaim.preliminaryLossEstimate.estimatedLossAmountINR);
+      setApprovedAmount(selectedClaim?.preliminaryLossEstimate?.estimatedLossAmountINR || 0);
     } else if (type === "More Evidence Requested") {
       setDecisionRemarks("Please submit clear close-up photos of the damaged panicles and complete the western quadrant capture.");
     } else if (type === "Rejected") {

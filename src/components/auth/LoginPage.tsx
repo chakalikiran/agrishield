@@ -44,7 +44,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handleOfficerSeedLogin = async () => {
+  const handleOfficerLogin = async () => {
     setLocalError(null);
     clearError();
     try {
@@ -162,12 +162,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
 
             <button
               type="button"
-              onClick={handleOfficerSeedLogin}
+              onClick={handleOfficerLogin}
               disabled={isSubmitting || loading}
               className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-blue-300 rounded-lg shadow-2xs text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition cursor-pointer"
             >
               <Building2 className="h-3.5 w-3.5 text-blue-600" />
-              <span>Sign In / Seed as Insurance Officer</span>
+              <span>Sign In as Insurance Officer</span>
             </button>
           </form>
 

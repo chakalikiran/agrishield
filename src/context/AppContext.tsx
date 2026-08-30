@@ -42,6 +42,7 @@ import {
   saveField,
   saveCrop,
   saveEvidence,
+  uploadEvidenceImage,
   saveDisaster,
   saveClaim,
   subscribeToClaims,
@@ -108,7 +109,7 @@ interface AppContextType {
       cultivatedAreaAcres?: number;
     }
   ) => Promise<{ field: FieldRecord; crop: CropRecord }>;
-  captureEvidence: (evidence: Omit<EvidenceRecord, "id" | "timestamp" | "verification">) => Promise<EvidenceRecord>;
+  captureEvidence: (evidence: Omit<EvidenceRecord, "id" | "timestamp" | "verification"> & { imageFileOrDataUrl?: File | string }) => Promise<EvidenceRecord>;
   reportDisaster: (report: Omit<DisasterReport, "id" | "reportedAt" | "status">) => Promise<DisasterReport>;
   assessImageAI: (imageBase64: string, cropType: string, stage: string, disasterType?: string, evidenceType?: string) => Promise<AIAssessmentResult>;
   updateOfficerClaimDecision: (claimId: string, decision: ClaimRecord["status"], remarks: string, approvedPayout?: number) => void;
@@ -369,7 +370,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [activeFieldId, crops, activeCropId]);
 
-  // Check pending offline items count
+  // Check pending offline items count and set up online/offline listeners
   const checkPendingQueue = async () => {
     try {
       const pending = await getOfflinePendingEvidence();
@@ -381,6 +382,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     checkPendingQueue();
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      setSyncStatus("idle");
+      triggerSync();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setSyncStatus("offline");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    setIsOnline(navigator.onLine);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   // Fetch weather for active field if exists
@@ -700,20 +720,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const captureEvidence = async (
-    evidenceData: Omit<EvidenceRecord, "id" | "timestamp" | "verification">
+    evidenceData: Omit<EvidenceRecord, "id" | "timestamp" | "verification"> & { imageFileOrDataUrl?: File | string }
   ): Promise<EvidenceRecord> => {
     const nextIndex = evidenceList.length + 1;
-    const evidenceId = `EV00${nextIndex}`;
+    const evidenceId = `EV-${Date.now()}`;
     const capturedAt = new Date().toISOString();
 
     const currentField = fields.find((f) => f.id === evidenceData.fieldId) || fields[0];
     const currentDisaster = disasterReports.find((d) => d.fieldId === evidenceData.fieldId);
 
+    let uploadFailedOffline = false;
+    // 1. Upload image to Firebase Storage if user is authenticated
+    let imageUrl = evidenceData.imageUrl;
+    if (user?.uid && evidenceData.fieldId && evidenceData.cropId) {
+      try {
+        if (evidenceData.imageFileOrDataUrl) {
+          imageUrl = await uploadEvidenceImage(
+            user.uid,
+            evidenceData.fieldId,
+            evidenceData.cropId,
+            evidenceId,
+            evidenceData.imageFileOrDataUrl
+          );
+        } else if (evidenceData.imageUrl && evidenceData.imageUrl.startsWith("data:")) {
+          imageUrl = await uploadEvidenceImage(
+            user.uid,
+            evidenceData.fieldId,
+            evidenceData.cropId,
+            evidenceId,
+            evidenceData.imageUrl
+          );
+        }
+      } catch (err) {
+        console.warn("Firebase Storage upload failed, queueing offline:", err);
+        uploadFailedOffline = true;
+      }
+    }
+
     // AI assessment if not provided
     let aiAssessment = evidenceData.aiAssessment;
-    if (!aiAssessment && evidenceData.imageUrl) {
+    if (!aiAssessment && imageUrl) {
       aiAssessment = await assessImageAI(
-        evidenceData.imageUrl,
+        imageUrl,
         evidenceData.cropStage,
         evidenceData.cropStage,
         currentDisaster?.disasterType || "Heavy Rainfall",
@@ -726,6 +774,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const baseRecord: EvidenceRecord = {
       ...evidenceData,
+      imageUrl,
       id: evidenceId,
       timestamp: capturedAt,
       aiAssessment,
@@ -746,14 +795,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       verification,
     };
 
-    // Save to Firestore
-    if (user?.uid && evidenceData.fieldId && evidenceData.cropId) {
+    // 2. Save metadata to Firestore
+    let firestoreFailedOffline = false;
+    if (user?.uid && evidenceData.fieldId && evidenceData.cropId && !uploadFailedOffline) {
       const firestoreEvidence: FirestoreEvidence = {
         evidenceId,
         fieldId: evidenceData.fieldId,
         cropId: evidenceData.cropId,
         type: evidenceData.evidenceType || "growth",
-        imageUrl: evidenceData.imageUrl,
+        imageUrl, // Storage download URL (not base64)
         latitude: evidenceData.lat,
         longitude: evidenceData.lng,
         capturedAt,
@@ -774,11 +824,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           firestoreEvidence
         );
       } catch (err) {
-        console.warn("Firestore saveEvidence error, queuing offline:", err);
+        console.warn("Firestore saveEvidence error, queueing offline:", err);
+        firestoreFailedOffline = true;
       }
     }
 
-    if (!isOnline) {
+    if (!isOnline || uploadFailedOffline || firestoreFailedOffline) {
       await saveOfflineEvidence(completeRecord);
       setPendingSyncCount((prev) => prev + 1);
       setSyncStatus("offline");
@@ -1050,18 +1101,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const triggerSync = async () => {
+    if (!isOnline) return;
     setSyncStatus("syncing");
-    const pending = await getOfflinePendingEvidence();
+    try {
+      const pending = await getOfflinePendingEvidence();
+      for (const item of pending) {
+        let imageUrl = item.imageUrl;
+        if (user?.uid && item.fieldId && item.cropId && imageUrl.startsWith("data:")) {
+          try {
+            imageUrl = await uploadEvidenceImage(
+              user.uid,
+              item.fieldId,
+              item.cropId,
+              item.id,
+              imageUrl
+            );
+          } catch (err) {
+            console.error("Failed to upload pending image during sync:", err);
+            continue;
+          }
+        }
 
-    await new Promise((r) => setTimeout(r, 1000));
+        if (user?.uid && item.fieldId && item.cropId) {
+          const firestoreEvidence: FirestoreEvidence = {
+            evidenceId: item.id,
+            fieldId: item.fieldId,
+            cropId: item.cropId,
+            type: item.evidenceType || "growth",
+            imageUrl,
+            latitude: item.lat,
+            longitude: item.lng,
+            capturedAt: item.timestamp,
+            cropStage: item.cropStage,
+            stepName: item.stepName,
+            notes: item.notes,
+            damageClassification: item.damageClassification,
+            aiAssessment: item.aiAssessment,
+            verification: item.verification,
+            createdAt: item.timestamp,
+          };
 
-    for (const item of pending) {
-      await clearSyncedOfflineEvidence(item.id);
+          try {
+            await saveEvidence(user.uid, item.fieldId, item.cropId, firestoreEvidence);
+            await clearSyncedOfflineEvidence(item.id);
+          } catch (err) {
+            console.error("Failed to save pending evidence metadata to Firestore during sync:", err);
+          }
+        }
+      }
+
+      const remaining = await getOfflinePendingEvidence();
+      setPendingSyncCount(remaining.length);
+      setSyncStatus(remaining.length === 0 ? "synced" : "offline");
+      if (remaining.length === 0) {
+        setTimeout(() => setSyncStatus("idle"), 2500);
+      }
+    } catch (err) {
+      console.error("Sync error:", err);
+      setSyncStatus("offline");
     }
-
-    setPendingSyncCount(0);
-    setSyncStatus("synced");
-    setTimeout(() => setSyncStatus("idle"), 2500);
   };
 
   // Explicit development-only seed mechanism

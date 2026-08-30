@@ -8,7 +8,6 @@ import {
   Sparkles,
   Wifi,
   WifiOff,
-  RotateCcw,
   LogOut,
   Building2,
   User,
@@ -21,7 +20,6 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
     setLanguage,
     isOnline,
     toggleSimulatedOffline,
-    resetDemoData,
     t,
   } = useApp();
 
@@ -120,16 +118,6 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
             }`}
           >
             {isOnline ? <Wifi className="h-3.5 w-3.5 text-emerald-600" /> : <WifiOff className="h-3.5 w-3.5 text-amber-600" />}
-          </button>
-
-          {/* Reset Demo Data */}
-          <button
-            type="button"
-            onClick={resetDemoData}
-            title="Reset Sample Data"
-            className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
           </button>
 
           {/* Logout Button */}
