@@ -40,7 +40,7 @@ export function getFriendlyAuthErrorMessage(error: unknown): string {
   const code = errObj.code || errObj.message || "";
 
   if (code.includes("auth/configuration-not-found")) {
-    return "Authentication is not configured for this application. Please check the Firebase Authentication setup.";
+    return "Authentication is not configured for this application. Please check configuration settings.";
   }
   if (code.includes("auth/invalid-email")) {
     return "Please enter a valid email address.";
@@ -61,10 +61,10 @@ export function getFriendlyAuthErrorMessage(error: unknown): string {
     return "Too many failed login attempts. Please wait a moment and try again.";
   }
   if (code.includes("auth/operation-not-allowed")) {
-    return "Email/Password sign-in is currently disabled in your Firebase console.";
+    return "Email/Password sign-in is currently disabled.";
   }
   if (code.includes("permission-denied") || code.includes("Missing or insufficient permissions")) {
-    return "Permission denied. Please verify your account permissions.";
+    return "We couldn't access your account data. Please try again.";
   }
   if (typeof error === "string") return error;
   return errObj.message || "An authentication error occurred. Please try again.";

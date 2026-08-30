@@ -84,9 +84,9 @@ export const FarmerDashboard: React.FC = () => {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-12 text-center space-y-3 shadow-xs">
         <div className="inline-flex h-10 w-10 animate-spin items-center justify-center rounded-full border-3 border-slate-200 border-t-emerald-700 text-emerald-700" />
-        <h3 className="text-base font-bold text-slate-800">Loading farmer records from Firestore...</h3>
+        <h3 className="text-base font-bold text-slate-800">Loading your farm records...</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          Connecting to Firebase Firestore for authenticated account UID: {farmer?.id || farmer?.farmerId || "Farmer"}
+          Synchronizing your active crop profiles and field records...
         </p>
       </div>
     );
@@ -208,7 +208,7 @@ export const FarmerDashboard: React.FC = () => {
               {isDevMenuOpen && (
                 <div className="absolute right-0 mt-1 w-56 rounded-lg bg-white border border-slate-200 p-2 shadow-lg z-30 space-y-1.5 text-xs">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block px-1">
-                    Firestore Dev Tools
+                    Developer Utilities
                   </span>
                   <button
                     type="button"

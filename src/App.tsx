@@ -28,7 +28,7 @@ const MainContent: React.FC = () => {
         <div className="flex items-center space-x-3 sm:space-x-4">
           <div className="flex items-center space-x-1.5">
             <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-500" : "bg-amber-500"}`} />
-            <span>DB Sync: {isOnline ? "Live Firestore" : "Offline DB"}</span>
+            <span>Cloud Sync: {isOnline ? "Live" : "Offline Mode"}</span>
           </div>
           <span className="hidden sm:inline">&bull;</span>
           <span className="hidden sm:inline">System Uptime: 99.9%</span>
@@ -62,10 +62,10 @@ const AuthGate: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 text-emerald-800 text-sm font-bold mt-1">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Authenticating Session...</span>
+            <span>Signing you in...</span>
           </div>
           <p className="text-xs text-slate-500">
-            Checking Firebase Authentication session and Firestore registry records.
+            Checking your account...
           </p>
         </div>
       </div>

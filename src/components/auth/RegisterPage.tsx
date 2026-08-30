@@ -105,7 +105,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
           New Farmer Registration
         </h2>
         <p className="mt-1 text-center text-xs text-slate-600">
-          Enroll in PMFBY Digital Crop Insurance Evidence & Verification Registry
+          Enroll in PMFBY Digital Crop Insurance Evidence & Verification System
         </p>
       </div>
 
@@ -317,7 +317,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
                 {isSubmitting || loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Creating Firebase Account & Profile...</span>
+                    <span>Creating your account & profile...</span>
                   </>
                 ) : (
                   <>

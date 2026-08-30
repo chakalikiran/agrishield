@@ -843,7 +843,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         decision: "Evidence Collection",
         actionTimestamp: new Date().toISOString(),
         remarks:
-          "Disaster incident recorded in PMFBY registry. Collect 4-step photographic evidence to finalize indemnity assessment.",
+          "Disaster incident recorded in PMFBY system. Collect 4-step photographic evidence to finalize indemnity assessment.",
       },
     };
 

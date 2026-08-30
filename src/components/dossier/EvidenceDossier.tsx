@@ -141,7 +141,7 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
           </div>
         </div>
 
-        {/* Section 1: Farmer & Field Registry Details */}
+        {/* Section 1: Farmer & Field Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Farmer Profile */}
           <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3.5 space-y-2">
@@ -181,7 +181,7 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
           <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3.5 space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
               <MapPin className="h-3.5 w-3.5 text-emerald-700" />
-              2. Agricultural Field & Crop Registry
+              2. Agricultural Field & Crop Records
             </h3>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>

@@ -310,7 +310,7 @@ export const FarmerProfileModal: React.FC<FarmerProfileModalProps> = ({
               <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-100">
                 <span className="text-slate-500 flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5 text-slate-400" />
-                  Email (Firebase Auth)
+                  Account Email
                 </span>
                 <span className="font-semibold text-slate-900">{farmerProfile.email || user?.email}</span>
               </div>
@@ -328,7 +328,7 @@ export const FarmerProfileModal: React.FC<FarmerProfileModalProps> = ({
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-500 flex items-center gap-1.5">
                   <Shield className="h-3.5 w-3.5 text-slate-400" />
-                  Firebase UID
+                  Account ID
                 </span>
                 <span className="font-mono text-[11px] text-slate-500">{farmerProfile.uid || user?.uid}</span>
               </div>
