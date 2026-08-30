@@ -43,7 +43,7 @@ export const EvidenceTimeline: React.FC<{
   if (!activeField) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-        No field selected.
+        {t["noFieldSelected"] || "No field selected."}
       </div>
     );
   }
@@ -55,13 +55,13 @@ export const EvidenceTimeline: React.FC<{
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded inline-block mb-1">
-              Continuous Monitoring
+              {t["continuousMonitoring"] || "Continuous Monitoring"}
             </span>
             <h3 className="text-base font-bold text-slate-900">
-              Crop Evidence Timeline &bull; {activeCrop ? activeCrop.cropType : "Crop Profile"} ({activeField.name})
+              {t["cropEvidenceTimeline"] || "Crop Evidence Timeline"} &bull; {activeCrop ? activeCrop.cropType : (t["cropProfile"] || "Crop Profile")} ({activeField.name})
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Geo-tagged visual ledger tracking crop stages from sowing through disaster assessment.
+              {t["timelineDescription"] || "Geo-tagged visual ledger tracking crop stages from sowing through disaster assessment."}
             </p>
           </div>
 
@@ -97,7 +97,7 @@ export const EvidenceTimeline: React.FC<{
                 onClick={onOpenCaptureModal}
                 className="rounded bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 shadow-2xs transition shrink-0 cursor-pointer"
               >
-                Capture Photo Now
+                {t["capturePhotoNow"] || "Capture Photo Now"}
               </button>
             )}
           </div>
@@ -235,11 +235,11 @@ export const EvidenceTimeline: React.FC<{
                       <div className="flex items-center gap-2">
                         <span className="text-emerald-700 font-semibold inline-flex items-center gap-0.5">
                           <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                          GPS Verified
+                          {t["gpsVerified"] || "GPS Verified"}
                         </span>
                         <span className="text-emerald-700 font-semibold inline-flex items-center gap-0.5">
                           <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                          Weather Correlated
+                          {t["weatherCorrelated"] || "Weather Correlated"}
                         </span>
                       </div>
                     </div>

@@ -10,7 +10,7 @@ import { RegisterPage } from "./components/auth/RegisterPage";
 import { Loader2 } from "lucide-react";
 
 const MainContent: React.FC = () => {
-  const { role, isOnline } = useApp();
+  const { role, isOnline, t } = useApp();
   const [isWalkthroughOpen, setIsWalkthroughOpen] = useState<boolean>(false);
 
   return (
@@ -28,15 +28,15 @@ const MainContent: React.FC = () => {
         <div className="flex items-center space-x-3 sm:space-x-4">
           <div className="flex items-center space-x-1.5">
             <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-500" : "bg-amber-500"}`} />
-            <span>Cloud Sync: {isOnline ? "Live" : "Offline Mode"}</span>
+            <span>{isOnline ? (t.syncStatusOnline || "Cloud Sync: Live") : (t.syncStatusOffline || "Offline Sync")}</span>
           </div>
           <span className="hidden sm:inline">&bull;</span>
-          <span className="hidden sm:inline">System Uptime: 99.9%</span>
+          <span className="hidden sm:inline">{t["systemUptime"] || "System Uptime"}: 99.9%</span>
           <span className="hidden md:inline">&bull;</span>
-          <span className="hidden md:inline">PMFBY Kharif 2026</span>
+          <span className="hidden md:inline">{t["seasonLabel"] || "PMFBY Kharif 2026"}</span>
         </div>
         <div className="text-[10px] text-slate-500 font-medium tracking-tight">
-          AGRI-SHIELD-V2.4 &bull; SMART CROP INSURANCE EVIDENCE SYSTEM
+          {t["appVersion"] || "AGRI-SHIELD-V2.4"} &bull; {t["smartCropInsuranceSystem"] || "SMART CROP INSURANCE EVIDENCE SYSTEM"}
         </div>
       </footer>
 
@@ -51,6 +51,7 @@ const MainContent: React.FC = () => {
 
 const AuthGate: React.FC = () => {
   const { user, userRole, farmerProfile, officerProfile, loading } = useAuth();
+  const { t } = useApp();
   const [authView, setAuthView] = useState<"login" | "register">("login");
 
   if (loading) {
@@ -62,10 +63,10 @@ const AuthGate: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 text-emerald-800 text-sm font-bold mt-1">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Signing you in...</span>
+            <span>{t["signingIn"] || "Signing you in..."}</span>
           </div>
           <p className="text-xs text-slate-500">
-            Checking your account...
+            {t["checkingAccount"] || "Checking your account..."}
           </p>
         </div>
       </div>
@@ -79,17 +80,15 @@ const AuthGate: React.FC = () => {
     return <LoginPage onSwitchToRegister={() => setAuthView("register")} />;
   }
 
-  return (
-    <AppProvider>
-      <MainContent />
-    </AppProvider>
-  );
+  return <MainContent />;
 };
 
 export function App() {
   return (
     <AuthProvider>
-      <AuthGate />
+      <AppProvider>
+        <AuthGate />
+      </AppProvider>
     </AuthProvider>
   );
 }

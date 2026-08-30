@@ -75,9 +75,9 @@ export const EvidenceDossier: React.FC<{ claimId?: string }> = ({ claimId }) => 
         <div className="mx-auto h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
           <BadgeCheck className="h-5 w-5" />
         </div>
-        <h3 className="text-base font-bold text-slate-800">No active claim records found</h3>
+        <h3 className="text-base font-bold text-slate-800">{t.claimDossierEmpty || "No active claim records found"}</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          Report a crop disaster or register a field to generate a consolidated PMFBY claim dossier.
+          {t.claimDossierEmptySubtext || "Report a crop disaster or register a field to generate a consolidated PMFBY claim dossier."}
         </p>
       </div>
     );

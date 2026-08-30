@@ -129,7 +129,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (userRole === "officer") return "OFFICER";
     return "FARMER";
   });
-  const [language, setLanguage] = useState<LanguageCode>("en");
+
+  const getStoredLanguage = (): LanguageCode => {
+    if (typeof window === "undefined") return "en";
+    const saved = window.localStorage.getItem("agrishield-language");
+    return saved === "en" || saved === "hi" || saved === "te" || saved === "ta" || saved === "mr"
+      ? (saved as LanguageCode)
+      : "en";
+  };
+
+  const [language, setLanguageState] = useState<LanguageCode>(getStoredLanguage);
+  const setLanguage = useCallback((lang: LanguageCode) => {
+    setLanguageState(lang);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("agrishield-language", lang);
+    }
+  }, []);
 
   const setRole = (newRole: UserRole) => {
     if (userRole === "farmer" && newRole === "OFFICER") {
@@ -217,11 +232,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (farmerProfile) {
       setFarmer(farmerProfile);
-      if (farmerProfile.preferredLanguage) {
-        setLanguage(farmerProfile.preferredLanguage);
+      if (farmerProfile.preferredLanguage && typeof window !== "undefined") {
+        const storedLanguage = window.localStorage.getItem("agrishield-language");
+        if (!storedLanguage) {
+          setLanguage(farmerProfile.preferredLanguage);
+        }
       }
     }
-  }, [farmerProfile]);
+  }, [farmerProfile, setLanguage]);
 
   // Load all Firestore subcollections for the authenticated user
   const loadFarmerData = useCallback(

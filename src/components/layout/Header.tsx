@@ -40,7 +40,7 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
             <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
               <span>AgriShield</span>
               <span className="font-normal text-slate-400 text-xs sm:text-sm">
-                | {isOfficer ? "Insurance Officer Portal" : "Farmer Portal"}
+                | {isOfficer ? t.roleOfficer : t.roleFarmer}
               </span>
             </h1>
           </div>
@@ -53,7 +53,7 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              title="View & Edit Farmer Profile"
+              title={t.viewProfile || "View & Edit Farmer Profile"}
               className="flex items-center bg-emerald-50 hover:bg-emerald-100/80 rounded-lg px-2.5 py-1 space-x-1.5 border border-emerald-200 transition cursor-pointer"
             >
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
@@ -86,7 +86,7 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 transition cursor-pointer shadow-2xs"
             >
               <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Guide</span>
+              <span className="hidden sm:inline">{t.guide || "Guide"}</span>
             </button>
           )}
 
@@ -110,7 +110,7 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
           <button
             type="button"
             onClick={toggleSimulatedOffline}
-            title={isOnline ? "Simulate Offline Mode" : "Switch to Online Mode"}
+            title={isOnline ? t.simulateOffline || "Simulate Offline Mode" : t.switchToOnline || "Switch to Online Mode"}
             className={`p-1.5 rounded-lg border transition cursor-pointer ${
               isOnline
                 ? "border-slate-200 text-slate-600 hover:bg-slate-100"
@@ -124,11 +124,11 @@ export const Header: React.FC<{ onOpenWalkthrough: () => void }> = ({ onOpenWalk
           <button
             type="button"
             onClick={() => logout()}
-            title="Sign Out of AgriShield"
+            title={t.logout || "Sign Out of AgriShield"}
             className="inline-flex items-center gap-1 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
           >
             <LogOut className="h-3.5 w-3.5" />
-            <span className="hidden md:inline text-xs font-semibold">Logout</span>
+            <span className="hidden md:inline text-xs font-semibold">{t.logout}</span>
           </button>
         </div>
       </div>

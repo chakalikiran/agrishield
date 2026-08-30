@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useApp } from "../../context/AppContext";
 import { LanguageCode } from "../../types";
 import {
   ShieldCheck,
@@ -21,6 +22,7 @@ interface RegisterPageProps {
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) => {
   const { register, error, clearError, loading } = useAuth();
+  const { t } = useApp();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -57,17 +59,17 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
       !formData.village.trim() ||
       !formData.district.trim()
     ) {
-      setLocalError("Please fill in all mandatory farmer registration fields.");
+      setLocalError(t["registrationRequiredFields"] || "Please fill in all mandatory farmer registration fields.");
       return;
     }
 
     if (formData.password.length < 6) {
-      setLocalError("Password must be at least 6 characters long.");
+      setLocalError(t["passwordLengthError"] || "Password must be at least 6 characters long.");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setLocalError("Passwords do not match. Please verify.");
+      setLocalError(t["passwordMismatch"] || "Passwords do not match. Please verify.");
       return;
     }
 
@@ -102,10 +104,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
           </div>
         </div>
         <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-slate-900">
-          New Farmer Registration
+          {t["newFarmerRegistrationTitle"] || "New Farmer Registration"}
         </h2>
         <p className="mt-1 text-center text-xs text-slate-600">
-          Enroll in PMFBY Digital Crop Insurance Evidence & Verification System
+          {t["newFarmerRegistrationSubtitle"] || "Enroll in PMFBY Digital Crop Insurance Evidence & Verification System"}
         </p>
       </div>
 
@@ -113,13 +115,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
         <div className="bg-white py-6 px-6 sm:px-8 shadow-sm border border-slate-200 rounded-xl space-y-4">
           <div className="border-b border-slate-100 pb-3">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-              Step 1 of 1: Identity & Location
+              {t["stepOneOfOne"] || "Step 1 of 1: Identity & Location"}
             </span>
             <h3 className="text-base font-bold text-slate-900 mt-1">
-              Farmer Profile & Insurance Enrollment
+              {t["farmerProfileEnrollment"] || "Farmer Profile & Insurance Enrollment"}
             </h3>
             <p className="text-xs text-slate-500">
-              A unique Farmer ID (e.g. FMR001) will be generated and saved to your Firestore profile.
+              {t["farmerProfileHint"] || "A unique Farmer ID (e.g. FMR001) will be generated and saved to your Firestore profile."}
             </p>
           </div>
 
@@ -128,7 +130,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
             <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 flex items-start gap-2.5 text-xs text-rose-800 animate-in fade-in">
               <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <span className="font-semibold block">Registration Notice</span>
+                <span className="font-semibold block">{t["registrationNotice"] || "Registration Notice"}</span>
                 <span>{activeError}</span>
               </div>
             </div>
@@ -138,7 +140,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Full Name (As on Aadhar/Pattadar) *
+                  {t["fullNameLabel"] || "Full Name (As on Aadhar/Pattadar) *"}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
@@ -157,7 +159,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Mobile Phone Number *
+                  {t["mobilePhoneLabel"] || "Mobile Phone Number *"}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
@@ -178,7 +180,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Email Address *
+                  {t["emailLabel"] || "Email Address *"}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
@@ -197,7 +199,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Aadhar (Last 4 Digits)
+                  {t["aadharLabel"] || "Aadhar (Last 4 Digits)"}
                 </label>
                 <input
                   type="text"
@@ -213,7 +215,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Village / Gram Panchayat *
+                  {t["villageLabel"] || "Village / Gram Panchayat *"}
                 </label>
                 <input
                   type="text"
@@ -227,7 +229,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  District / Mandal *
+                  {t["districtLabel"] || "District / Mandal *"}
                 </label>
                 <input
                   type="text"
@@ -241,7 +243,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  State *
+                  {t["stateLabel"] || "State *"}
                 </label>
                 <select
                   value={formData.state}
@@ -264,7 +266,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Preferred Language
+                  {t["preferredLanguage"] || "Preferred Language"}
                 </label>
                 <select
                   value={formData.preferredLanguage}
@@ -281,7 +283,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Password (min 6 chars) *
+                  {t["passwordMinLength"] || "Password (min 6 chars) *"}
                 </label>
                 <input
                   type="password"
@@ -295,7 +297,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Confirm Password *
+                  {t["confirmPassword"] || "Confirm Password *"}
                 </label>
                 <input
                   type="password"
@@ -317,12 +319,12 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
                 {isSubmitting || loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Creating your account & profile...</span>
+                    <span>{t["creatingAccount"] || "Creating your account & profile..."}</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>Complete Farmer Registration & Proceed</span>
+                    <span>{t["completeRegistration"] || "Complete Farmer Registration & Proceed"}</span>
                   </>
                 )}
               </button>
@@ -332,13 +334,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
           {/* Switch to Login */}
           <div className="text-center pt-2 border-t border-slate-100">
             <p className="text-xs text-slate-600">
-              Already registered as a PMFBY farmer?{" "}
+              {t["alreadyRegistered"] || "Already registered as a PMFBY farmer?"}{" "}
               <button
                 type="button"
                 onClick={onSwitchToLogin}
                 className="font-bold text-emerald-700 hover:text-emerald-800 transition cursor-pointer"
               >
-                Sign in with email &rarr;
+                {t["signInWithEmail"] || "Sign in with email →"}
               </button>
             </p>
           </div>
@@ -347,7 +349,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin }) =
         {/* Security notice */}
         <div className="mt-4 flex items-center justify-center gap-1.5 text-[10px] text-slate-500">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-          <span>Profile documents are securely stored in Firestore under /farmers/{`{uid}`}</span>
+          <span>{t["secureProfileNotice"] || "Profile documents are securely stored in Firestore under /farmers/{uid}"}</span>
         </div>
       </div>
     </div>

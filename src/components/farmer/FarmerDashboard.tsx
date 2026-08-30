@@ -79,9 +79,9 @@ export const FarmerDashboard: React.FC = () => {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-12 text-center space-y-3 shadow-xs">
         <div className="inline-flex h-10 w-10 animate-spin items-center justify-center rounded-full border-3 border-slate-200 border-t-emerald-700 text-emerald-700" />
-        <h3 className="text-base font-bold text-slate-800">Loading your farm records...</h3>
+        <h3 className="text-base font-bold text-slate-800">{t.loadingFarmRecords || "Loading your farm records..."}</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          Synchronizing your active crop profiles and field records...
+          {t.loadingFarmRecordsSubtext || "Synchronizing your active crop profiles and field records..."}
         </p>
       </div>
     );
@@ -113,7 +113,7 @@ export const FarmerDashboard: React.FC = () => {
             <WifiOff className="h-4 w-4 text-amber-700 shrink-0" />
             <span className="font-semibold text-xs">
               {!isOnline
-                ? "Offline Mode Active (Evidence stored in local IndexedDB)"
+                ? (t.offlineStatus || "Offline Mode Active (Evidence stored in local IndexedDB)")
                 : `${pendingSyncCount} pending offline photo records queued`}
             </span>
           </div>
@@ -126,7 +126,7 @@ export const FarmerDashboard: React.FC = () => {
               className="inline-flex items-center gap-1 rounded bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1 text-xs transition cursor-pointer"
             >
               <RefreshCw className={`h-3 w-3 ${syncStatus === "syncing" ? "animate-spin" : ""}`} />
-              {syncStatus === "syncing" ? "Syncing..." : "Sync Now"}
+              {syncStatus === "syncing" ? "Syncing..." : (t.syncNow || "Sync Now")}
             </button>
           </div>
         </div>
@@ -138,7 +138,7 @@ export const FarmerDashboard: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                PMFBY Registered Farmer
+                {t.roleFarmer || "PMFBY Registered Farmer"}
               </span>
               <span className="text-xs text-slate-500 font-mono">
                 Farmer ID: <strong>{farmer.farmerId || farmer.id}</strong>
@@ -243,9 +243,9 @@ export const FarmerDashboard: React.FC = () => {
             <MapPin className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900">No fields registered yet</h3>
+            <h3 className="text-base font-bold text-slate-900">{t.noFieldsYet || "No fields registered yet"}</h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-              Register your first agricultural plot with cadastral survey numbers to enable continuous crop monitoring, automated weather audits, and rapid PMFBY claim settlement.
+              {t.firstFieldPrompt || "Register your first agricultural plot with cadastral survey numbers to enable continuous crop monitoring, automated weather audits, and rapid PMFBY claim settlement."}
             </p>
           </div>
 
@@ -256,7 +256,7 @@ export const FarmerDashboard: React.FC = () => {
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 shadow-2xs transition cursor-pointer"
             >
               <Plus className="h-4 w-4" />
-              Register Your First Field
+              {t.registerField || "Register Your First Field"}
             </button>
           </div>
         </div>

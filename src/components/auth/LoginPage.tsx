@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useApp } from "../../context/AppContext";
 import {
   ShieldCheck,
   Mail,
@@ -18,6 +19,7 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
   const { login, loginAsOfficer, error, clearError, loading } = useAuth();
+  const { t } = useApp();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -69,7 +71,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
           </div>
         </div>
         <h2 className="mt-4 text-center text-2xl font-bold tracking-tight text-slate-900">
-          AgriShield Farmer Portal
+          AgriShield {t.roleFarmer}
         </h2>
         <p className="mt-1 text-center text-xs text-slate-600">
           PMFBY Smart Crop Insurance Evidence & Verification System
@@ -80,13 +82,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
         <div className="bg-white py-6 px-6 sm:px-8 shadow-sm border border-slate-200 rounded-xl space-y-5">
           <div className="border-b border-slate-100 pb-3">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-              Secure Authentication
+              {t.secureAuthentication || "Secure Authentication"}
             </span>
             <h3 className="text-base font-bold text-slate-900 mt-1.5">
-              Sign In to Your Farmer Account
+              {t.signInFarmerAccount || "Sign In to Your Farmer Account"}
             </h3>
             <p className="text-xs text-slate-500">
-              Access your field records, geo-tagged crop evidence, and insurance claims.
+              {t.accessFarmerRecords || "Access your field records, geo-tagged crop evidence, and insurance claims."}
             </p>
           </div>
 
@@ -95,7 +97,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
             <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 flex items-start gap-2.5 text-xs text-rose-800 animate-in fade-in">
               <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <span className="font-semibold block">Authentication Notice</span>
+                <span className="font-semibold block">{t.authenticationNotice || "Authentication Notice"}</span>
                 <span>{activeError}</span>
               </div>
             </div>
@@ -104,7 +106,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Registered Email
+                {t.registeredEmail || "Registered Email"}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -124,7 +126,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider">
-                  Password
+                  {t.password || "Password"}
                 </label>
               </div>
               <div className="relative">
@@ -154,7 +156,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
                 </>
               ) : (
                 <>
-                  <span>Sign In as Farmer</span>
+                  <span>{t.signInFarmer || "Sign In as Farmer"}</span>
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -167,20 +169,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
               className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-blue-300 rounded-lg shadow-2xs text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition cursor-pointer"
             >
               <Building2 className="h-3.5 w-3.5 text-blue-600" />
-              <span>Sign In as Insurance Officer</span>
+              <span>{t.signInOfficer || "Sign In as Insurance Officer"}</span>
             </button>
           </form>
 
           {/* Switch to Register */}
           <div className="text-center pt-2 border-t border-slate-100">
             <p className="text-xs text-slate-600">
-              New farmer to PMFBY?{" "}
+              {t.newFarmerPrompt || "New farmer to PMFBY?"}{" "}
               <button
                 type="button"
                 onClick={onSwitchToRegister}
                 className="font-bold text-emerald-700 hover:text-emerald-800 transition cursor-pointer"
               >
-                Register new farmer profile &rarr;
+                {t.registerFarmerProfile || "Register new farmer profile →"}
               </button>
             </p>
           </div>

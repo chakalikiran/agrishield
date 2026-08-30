@@ -24,37 +24,6 @@ interface GuidedStep {
   recommendedAngle: string;
 }
 
-const GUIDED_STEPS: GuidedStep[] = [
-  {
-    stepNumber: 1,
-    title: "Wide Field Overview",
-    instruction: "Capture a wide view of the whole field showing the overall perimeter and standing crop stand.",
-    evidenceType: "Wide field view",
-    recommendedAngle: "Stand at boundary ridge, aim camera horizontally to capture field extent.",
-  },
-  {
-    stepNumber: 2,
-    title: "Secondary Quadrant Section",
-    instruction: "Capture another section or cross-section of the field showing secondary plot condition.",
-    evidenceType: "Post-disaster",
-    recommendedAngle: "Walk 50 meters into the side path, frame the middle section.",
-  },
-  {
-    stepNumber: 3,
-    title: "Severely Damaged Area",
-    instruction: "Capture the severely damaged, submerged, lodged, or hail-impacted epicenter.",
-    evidenceType: "Damaged area",
-    recommendedAngle: "Focus directly on the most impacted soil/crop pocket.",
-  },
-  {
-    stepNumber: 4,
-    title: "Close-Up Foliage & Stalks",
-    instruction: "Capture a macro close-up of the damaged crop stems, panicles, or waterlogged root base.",
-    evidenceType: "Close-up",
-    recommendedAngle: "Hold camera 20-30 cm from foliage to reveal leaf lacerations or rot.",
-  },
-];
-
 export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ onComplete }) => {
   const {
     t,
@@ -65,6 +34,37 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
     captureEvidence,
     assessImageAI,
   } = useApp();
+
+  const guidedSteps: GuidedStep[] = [
+    {
+      stepNumber: 1,
+      title: t["wideFieldOverview"] || "Wide Field Overview",
+      instruction: t["wideFieldInstruction"] || "Capture a wide view of the whole field showing the overall perimeter and standing crop stand.",
+      evidenceType: "Wide field view",
+      recommendedAngle: t["wideFieldAngle"] || "Stand at boundary ridge, aim camera horizontally to capture field extent.",
+    },
+    {
+      stepNumber: 2,
+      title: t["secondaryQuadrantSection"] || "Secondary Quadrant Section",
+      instruction: t["secondaryQuadrantInstruction"] || "Capture another section or cross-section of the field showing secondary plot condition.",
+      evidenceType: "Post-disaster",
+      recommendedAngle: t["secondaryQuadrantAngle"] || "Walk 50 meters into the side path, frame the middle section.",
+    },
+    {
+      stepNumber: 3,
+      title: t["severelyDamagedArea"] || "Severely Damaged Area",
+      instruction: t["severelyDamagedInstruction"] || "Capture the severely damaged, submerged, lodged, or hail-impacted epicenter.",
+      evidenceType: "Damaged area",
+      recommendedAngle: t["damagedAreaAngle"] || "Focus directly on the most impacted soil/crop pocket.",
+    },
+    {
+      stepNumber: 4,
+      title: t["closeUpFoliage"] || "Close-Up Foliage & Stalks",
+      instruction: t["closeUpInstruction"] || "Capture a macro close-up of the damaged crop stems, panicles, or waterlogged root base.",
+      evidenceType: "Close-up",
+      recommendedAngle: t["closeUpAngle"] || "Hold camera 20-30 cm from foliage to reveal leaf lacerations or rot.",
+    },
+  ];
 
   const { user } = useAuth();
 
@@ -84,7 +84,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const currentStep = GUIDED_STEPS[currentStepIndex] || GUIDED_STEPS[0];
+  const currentStep = guidedSteps[currentStepIndex] || guidedSteps[0];
   const activeField = fields.find((f) => f.id === activeFieldId) || fields[0];
   const activeCrop = crops.find((c) => c.fieldId === activeFieldId) || crops[0];
   const activeDisaster = disasterReports.find((d) => d.fieldId === activeFieldId) || disasterReports[0];
@@ -93,7 +93,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
   const acquireGPSAndCapture = () => {
     setErrorMessage(null);
     if (!navigator.geolocation) {
-      setErrorMessage("Location permission is required.");
+      setErrorMessage(t["gpsPermissionRequired"] || "Location permission is required.");
       return;
     }
     setIsLocating(true);
@@ -110,7 +110,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
       (err) => {
         console.warn("GPS error:", err);
         setIsLocating(false);
-        setErrorMessage("Location permission is required.");
+        setErrorMessage(t["gpsPermissionRequired"] || "Location permission is required.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -130,7 +130,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
       }
     };
     reader.onerror = () => {
-      setErrorMessage("Camera permission is required.");
+      setErrorMessage(t["cameraPermissionRequired"] || "Camera permission is required.");
     };
     reader.readAsDataURL(file);
   };
@@ -149,7 +149,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
             });
           },
           () => {
-            setErrorMessage("Location permission is required.");
+            setErrorMessage(t["gpsPermissionRequired"] || "Location permission is required.");
           }
         );
       }
@@ -162,7 +162,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
         }
       };
       reader.onerror = () => {
-        setErrorMessage("Camera permission is required.");
+        setErrorMessage(t["cameraPermissionRequired"] || "Camera permission is required.");
       };
       reader.readAsDataURL(file);
     }
@@ -192,7 +192,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
   const handleSaveAndConfirm = async () => {
     if (!capturedImage || !gpsCoords) {
       if (!gpsCoords) {
-        setErrorMessage("Location permission is required.");
+        setErrorMessage(t["gpsPermissionRequired"] || "Location permission is required.");
       }
       return;
     }
@@ -223,7 +223,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
       const nextIndex = currentStepIndex + 1;
       setCapturedCount((prev) => prev + 1);
 
-      if (nextIndex < GUIDED_STEPS.length) {
+      if (nextIndex < guidedSteps.length) {
         setCurrentStepIndex(nextIndex);
         setCapturedImage(null);
         setCapturedFile(null);
@@ -256,7 +256,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
         </div>
         <h3 className="mt-3 text-xl font-bold text-slate-900">{t.evidenceComplete}</h3>
         <p className="mt-1.5 text-xs text-slate-600 max-w-md mx-auto">
-          All 4 post-disaster field sectors successfully geo-tagged and synchronized. Your Claim Dossier has been updated with real-time AI damage metrics.
+          {t["evidenceCompleteMessage"] || "All 4 post-disaster field sectors successfully geo-tagged and synchronized. Your Claim Dossier has been updated with real-time AI damage metrics."}
         </p>
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
@@ -293,7 +293,7 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
 
         {/* 4-Step Progress Bar */}
         <div className="grid grid-cols-4 gap-1.5 mt-2">
-          {GUIDED_STEPS.map((step, idx) => (
+          {guidedSteps.map((step, idx) => (
             <div
               key={step.stepNumber}
               className={`h-1.5 rounded-full transition-all ${
@@ -344,9 +344,9 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
               <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center text-white p-4">
                 <RefreshCw className="h-6 w-6 animate-spin text-emerald-400 mb-1.5" />
                 <span className="text-xs font-semibold">
-                  {isUploading ? "Uploading to Cloud & Saving Metadata..." : "Gemini AI analyzing crop damage..."}
+                  {isUploading ? (t["uploadingCloud"] || "Uploading to Cloud & Saving Metadata...") : (t["analyzingAi"] || "Gemini AI analyzing crop damage...")}
                 </span>
-                <span className="text-[10px] text-slate-300 mt-0.5">Secure Geo-tagged Ledger Sync</span>
+                <span className="text-[10px] text-slate-300 mt-0.5">{t["secureGeoTaggedLedger"] || "Secure Geo-tagged Ledger Sync"}</span>
               </div>
             )}
             <button
@@ -368,10 +368,10 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
 
             <div>
               <p className="text-xs font-semibold text-slate-800">
-                Capture live geo-tagged photo using device camera
+                {t["livePhotoCapture"] || "Capture live geo-tagged photo using device camera"}
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Rear camera (environment) & GPS coordinates will be captured at capture time.
+                {t["livePhotoSubtext"] || "Rear camera (environment) & GPS coordinates will be captured at capture time."}
               </p>
             </div>
 
@@ -425,8 +425,8 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
             {gpsCoords
               ? `GPS: ${gpsCoords.lat.toFixed(5)}, ${gpsCoords.lng.toFixed(5)} (±${gpsCoords.accuracy}m)`
               : isLocating
-              ? "Acquiring live GPS coordinates..."
-              : "GPS pending capture"}
+              ? (t["acquiringGps"] || "Acquiring live GPS coordinates...")
+              : (t["gpsPendingCapture"] || "GPS pending capture")}
           </span>
         </div>
 
@@ -516,10 +516,10 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
         >
           <span>
             {isUploading
-              ? "Saving & Uploading..."
-              : currentStepIndex === GUIDED_STEPS.length - 1
-              ? "Confirm & Save All Sector Evidence"
-              : "Confirm / Use Photo & Next"}
+              ? (t["savingUploading"] || "Saving & Uploading...")
+              : currentStepIndex === guidedSteps.length - 1
+              ? (t["confirmSaveAllEvidence"] || "Confirm & Save All Sector Evidence")
+              : (t["confirmUsePhotoNext"] || "Confirm / Use Photo & Next")}
           </span>
           <ArrowRight className="h-3.5 w-3.5" />
         </button>

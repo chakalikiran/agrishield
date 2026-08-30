@@ -23,6 +23,7 @@ export const OfficerDashboard: React.FC = () => {
     updateOfficerClaimDecision,
     activeClaimId,
     setActiveClaimId,
+    t,
   } = useApp();
 
   const [selectedClaimId, setSelectedClaimId] = useState<string>(activeClaimId || "CLM001");
@@ -63,9 +64,9 @@ export const OfficerDashboard: React.FC = () => {
 
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-xs">
           <ShieldCheck className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-slate-800">No claims available for review.</h3>
+          <h3 className="text-base font-bold text-slate-800">{t.claimsEmptyState || "No claims available for review."}</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-            Submitted insurance claims from farmers will appear here automatically for verification, multi-point geo-evidence inspection, and adjudication.
+            {t.claimsEmptyStateSubtext || "Submitted insurance claims from farmers will appear here automatically for verification, multi-point geo-evidence inspection, and adjudication."}
           </p>
         </div>
       </div>
