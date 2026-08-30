@@ -30,11 +30,14 @@ export const initialFarmerProfile: FarmerProfile = {
 };
 
 export const initialOfficerProfile: OfficerProfile = {
+  uid: "off-demo-uid",
   id: "OFF-704",
   name: "Dr. Ananya Sharma",
   badgeNumber: "AIC-AP-KR-042",
   email: "ananya.sharma@aicofindia.gov.in",
-  role: "District Agricultural Officer",
+  role: "officer",
+  officerId: "AIC-AP-KR-042",
+  district: "Krishna",
   assignedDistrict: "Krishna",
   insurerName: "Agriculture Insurance Company of India",
 };

@@ -50,7 +50,7 @@ const MainContent: React.FC = () => {
 };
 
 const AuthGate: React.FC = () => {
-  const { user, farmerProfile, loading } = useAuth();
+  const { user, userRole, farmerProfile, officerProfile, loading } = useAuth();
   const [authView, setAuthView] = useState<"login" | "register">("login");
 
   if (loading) {
@@ -62,7 +62,7 @@ const AuthGate: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 text-emerald-800 text-sm font-bold mt-1">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Authenticating Farmer Profile...</span>
+            <span>Authenticating Session...</span>
           </div>
           <p className="text-xs text-slate-500">
             Checking Firebase Authentication session and Firestore registry records.
@@ -72,7 +72,7 @@ const AuthGate: React.FC = () => {
     );
   }
 
-  if (!user || !farmerProfile) {
+  if (!user || (!farmerProfile && !officerProfile && userRole !== "officer" && userRole !== "farmer")) {
     if (authView === "register") {
       return <RegisterPage onSwitchToLogin={() => setAuthView("login")} />;
     }

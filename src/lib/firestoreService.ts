@@ -7,6 +7,9 @@ import {
   updateDoc,
   deleteDoc,
   writeBatch,
+  onSnapshot,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import {
@@ -416,9 +419,59 @@ export async function getFarmerClaims(uid: string): Promise<FirestoreClaim[]> {
 
 export async function saveClaim(uid: string, claim: FirestoreClaim): Promise<FirestoreClaim> {
   if (!uid) throw new Error("UID required");
+  const claimData = {
+    ...claim,
+    farmerId: claim.farmerId || uid,
+    createdAt: claim.createdAt || new Date().toISOString(),
+  };
+  const topRef = doc(db, "claims", claim.claimId);
+  await setDoc(topRef, claimData, { merge: true });
+
   const docRef = doc(db, "farmers", uid, "claims", claim.claimId);
-  await setDoc(docRef, claim);
-  return claim;
+  await setDoc(docRef, claimData, { merge: true });
+  return claimData;
+}
+
+export function subscribeToClaims(
+  userRole: "farmer" | "officer" | null,
+  uid: string | undefined,
+  callback: (claims: FirestoreClaim[]) => void
+): () => void {
+  if (!userRole || !uid) {
+    callback([]);
+    return () => {};
+  }
+
+  let q;
+  if (userRole === "officer") {
+    q = collection(db, "claims");
+  } else {
+    q = query(collection(db, "claims"), where("farmerId", "==", uid));
+  }
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: FirestoreClaim[] = [];
+      snapshot.forEach((d) => {
+        const data = d.data() as FirestoreClaim;
+        list.push({
+          ...data,
+          claimId: data.claimId || d.id,
+          id: data.claimId || d.id,
+          farmerId: data.farmerId || uid,
+        });
+      });
+      list.sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      callback(list);
+    },
+    (err) => {
+      console.warn("Claims snapshot error:", err);
+      callback([]);
+    }
+  );
 }
 
 // ==========================================
@@ -609,41 +662,6 @@ export async function seedDemoFarmerData(uid: string): Promise<{
     },
   ];
 
-  const claimsData: FirestoreClaim[] = [
-    {
-      claimId: "CLM001",
-      fieldId: "FL001",
-      cropId: "CR001",
-      disasterId: "DR001",
-      status: "Under Review",
-      claimDate: "2026-08-23",
-      evidenceCompleteness: 50,
-      disasterType: "Heavy Rainfall",
-      aiDamageAggregate: {
-        healthyPercent: 40,
-        moderatePercent: 35,
-        severePercent: 25,
-        estimatedDamagePercent: 55,
-        totalImagesAnalyzed: 3,
-      },
-      preliminaryLossEstimate: {
-        fieldAreaAcres: 2.35,
-        estimatedDamagePercent: 55,
-        estimatedAffectedAcres: 1.29,
-        sumInsuredPerAcreINR: 38500,
-        estimatedLossAmountINR: 49665,
-      },
-      officerDecision: {
-        officerName: "Dr. Ananya Sharma",
-        officerId: "OFF-704",
-        decision: "Under Review",
-        actionTimestamp: "2026-08-24T11:20:00.000Z",
-        remarks: "Telemetry spike verified. Multi-point photo assessment underway.",
-      },
-      createdAt: "2026-08-23T10:00:00.000Z",
-    },
-  ];
-
   // Write all records to Firestore
   for (const f of fieldsData) {
     await saveField(uid, f);
@@ -657,16 +675,13 @@ export async function seedDemoFarmerData(uid: string): Promise<{
   for (const d of disasterData) {
     await saveDisaster(uid, d);
   }
-  for (const c of claimsData) {
-    await saveClaim(uid, c);
-  }
 
   return {
     fields: fieldsData,
     crops: cropsData.map((c) => c.crop),
     evidence: evidenceData.map((e) => e.ev),
     disasters: disasterData,
-    claims: claimsData,
+    claims: [],
   };
 }
 
@@ -700,21 +715,17 @@ export async function clearFarmerData(uid: string): Promise<void> {
 
 export async function getAllClaimsForOfficer(): Promise<FirestoreClaim[]> {
   try {
-    const farmersSnap = await getDocs(collection(db, "farmers"));
+    const claimsSnap = await getDocs(collection(db, "claims"));
     const allClaims: FirestoreClaim[] = [];
-    for (const farmerDoc of farmersSnap.docs) {
-      const farmerId = farmerDoc.id;
-      const claimsSnap = await getDocs(collection(db, "farmers", farmerId, "claims"));
-      claimsSnap.forEach((d) => {
-        const data = d.data() as FirestoreClaim;
-        allClaims.push({
-          ...data,
-          claimId: data.claimId || d.id,
-          id: data.claimId || d.id,
-          farmerId: data.farmerId || farmerId,
-        });
+    claimsSnap.forEach((d) => {
+      const data = d.data() as FirestoreClaim;
+      allClaims.push({
+        ...data,
+        claimId: data.claimId || d.id,
+        id: data.claimId || d.id,
+        farmerId: data.farmerId || "FMR001",
       });
-    }
+    });
     return allClaims.sort(
       (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
     );

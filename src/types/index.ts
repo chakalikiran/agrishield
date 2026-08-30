@@ -136,10 +136,16 @@ export interface FirestoreClaim {
   fieldId: string;
   cropId?: string;
   disasterId?: string | null;
+  farmerId?: string;
   status: string;
   claimDate?: string;
+  disasterDate?: string;
+  description?: string;
   evidenceCompleteness?: number;
   disasterType?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  officerRemarks?: string;
   aiDamageAggregate?: {
     healthyPercent: number;
     moderatePercent: number;

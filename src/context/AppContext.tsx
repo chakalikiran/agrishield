@@ -31,6 +31,7 @@ import {
   clearSyncedOfflineEvidence,
 } from "../lib/offlineStore";
 import {
+  getFarmerProfile,
   getFarmerFields,
   getFieldCrops,
   getCropEvidence,
@@ -43,6 +44,7 @@ import {
   saveEvidence,
   saveDisaster,
   saveClaim,
+  subscribeToClaims,
   registerFieldAndCropInFirestore,
   getNextFieldId,
   getNextCropId,
@@ -122,17 +124,29 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { farmerProfile, user, userRole, officerProfile } = useAuth();
-  const [role, setRole] = useState<UserRole>(() => {
+  const [role, setRoleState] = useState<UserRole>(() => {
     if (userRole === "officer") return "OFFICER";
     return "FARMER";
   });
   const [language, setLanguage] = useState<LanguageCode>("en");
 
+  const setRole = (newRole: UserRole) => {
+    if (userRole === "farmer" && newRole === "OFFICER") {
+      console.warn("Unauthorized: Farmer cannot switch to Officer role.");
+      return;
+    }
+    if (userRole === "officer" && newRole === "FARMER") {
+      console.warn("Unauthorized: Officer cannot switch to Farmer role.");
+      return;
+    }
+    setRoleState(newRole);
+  };
+
   useEffect(() => {
     if (userRole === "officer") {
-      setRole("OFFICER");
+      setRoleState("OFFICER");
     } else if (userRole === "farmer") {
-      setRole("FARMER");
+      setRoleState("FARMER");
     }
   }, [userRole]);
 
@@ -302,29 +316,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     []
   );
 
-  // Trigger data load when user logs in, role changes, or profile changes
+  // Real-time claims subscription via onSnapshot
   useEffect(() => {
-    if (!user?.uid) {
+    if (!user?.uid || !userRole) {
       setIsLoadingFirestore(false);
       return;
     }
-    if (userRole === "officer") {
-      setIsLoadingFirestore(true);
-      getAllClaimsForOfficer()
-        .then((firestoreClaims) => {
-          const claimRecords = firestoreClaims.map((c) => claimToRecord(c, c.farmerId || "FMR001"));
-          setClaims(claimRecords);
-          if (claimRecords.length > 0) setActiveClaimId(claimRecords[0].id);
-          else setActiveClaimId(null);
-        })
-        .catch((err) => console.error("Failed to load officer claims:", err))
-        .finally(() => setIsLoadingFirestore(false));
-    } else if (farmerProfile) {
+
+    setIsLoadingFirestore(true);
+    if (userRole === "farmer" && farmerProfile) {
       loadFarmerData(user.uid, farmerProfile.farmerId || farmerProfile.id || user.uid);
-    } else {
-      setIsLoadingFirestore(false);
     }
+
+    const unsubscribe = subscribeToClaims(userRole, user.uid, (firestoreClaims) => {
+      const claimRecords = firestoreClaims.map((c) => claimToRecord(c, c.farmerId || user.uid));
+      setClaims(claimRecords);
+      if (claimRecords.length > 0 && !activeClaimId) {
+        setActiveClaimId(claimRecords[0].id);
+      } else if (claimRecords.length === 0) {
+        setActiveClaimId(null);
+      }
+      setIsLoadingFirestore(false);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [user?.uid, userRole, farmerProfile?.farmerId]);
+
+  // When officer selects a claim, load actual farmer, field, crop, disaster, and evidence
+  useEffect(() => {
+    if (userRole === "officer" && activeClaimId) {
+      const currentClaim = claims.find((c) => c.id === activeClaimId);
+      if (currentClaim && currentClaim.farmerId) {
+        getFarmerProfile(currentClaim.farmerId).then((profile) => {
+          if (profile) {
+            setFarmer(profile);
+          }
+        });
+        loadFarmerData(currentClaim.farmerId, currentClaim.farmerId, currentClaim.fieldId, currentClaim.cropId);
+      }
+    }
+  }, [userRole, activeClaimId, claims]);
 
   // When active field changes, ensure active crop is synced
   useEffect(() => {
@@ -835,13 +868,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Save Claim to Firestore
       const firestoreClaim: FirestoreClaim = {
         claimId,
+        farmerId: user.uid,
         fieldId: report.fieldId,
         cropId: report.cropId,
         disasterId,
+        disasterType: report.disasterType,
+        disasterDate: report.date,
+        description: report.description,
         status: "Evidence Collection",
         claimDate: report.date,
         evidenceCompleteness: 0,
-        disasterType: report.disasterType,
         aiDamageAggregate: newClaim.aiDamageAggregate,
         preliminaryLossEstimate: newClaim.preliminaryLossEstimate,
         officerDecision: newClaim.officerDecision,
@@ -946,14 +982,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     remarks: string,
     approvedPayout?: number
   ) => {
+    const targetClaim = claims.find((c) => c.id === claimId);
+    const farmerIdToUpdate = targetClaim?.farmerId || user?.uid || "";
+
     const updatedClaims = claims.map((c) => {
       if (c.id === claimId) {
         const updated: ClaimRecord = {
           ...c,
           status: decision,
           officerDecision: {
-            officerName: officer.name,
-            officerId: officer.id,
+            officerName: officer.name || "Dr. Ananya Sharma",
+            officerId: officer.id || officer.badgeNumber || "AIC-AP-KR-042",
             decision,
             actionTimestamp: new Date().toISOString(),
             remarks,
@@ -961,9 +1000,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           },
         };
 
-        if (user?.uid) {
-          saveClaim(user.uid, {
+        if (user?.uid && userRole === "officer") {
+          const firestoreClaimUpdate: FirestoreClaim = {
             claimId: updated.id,
+            farmerId: farmerIdToUpdate,
             fieldId: updated.fieldId,
             cropId: updated.cropId,
             disasterId: updated.disasterReportId,
@@ -974,8 +1014,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             aiDamageAggregate: updated.aiDamageAggregate,
             preliminaryLossEstimate: updated.preliminaryLossEstimate,
             officerDecision: updated.officerDecision,
-            createdAt: new Date().toISOString(),
-          });
+            reviewedBy: officer.name || "Dr. Ananya Sharma",
+            reviewedAt: new Date().toISOString(),
+            officerRemarks: remarks,
+            createdAt: updated.claimDate || new Date().toISOString(),
+          };
+          saveClaim(farmerIdToUpdate, firestoreClaimUpdate);
+          updateClaimDecisionInFirestore(
+            farmerIdToUpdate,
+            claimId,
+            decision,
+            remarks,
+            officer.name || "Dr. Ananya Sharma",
+            officer.id || officer.badgeNumber || "AIC-AP-KR-042",
+            approvedPayout
+          );
         }
         return updated;
       }

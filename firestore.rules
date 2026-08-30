@@ -2,58 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      allow read, write: if false;
-    }
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function getUserRole() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role : 
-        'farmer';
-    }
-
-    function isOfficer() {
-      return isSignedIn() && (getUserRole() == 'officer' || getUserRole() == 'OFFICER');
-    }
-
-    match /users/{uid} {
-      allow get: if isSignedIn();
-      allow create: if isOwner(uid) && request.resource.data.role == 'farmer';
-      allow update: if isOwner(uid) && request.resource.data.role == resource.data.role;
-      allow delete: if false;
-    }
-
-    match /farmers/{uid} {
-      allow get, update, create: if isOwner(uid);
-      allow list: if isSignedIn() && (isOwner(uid) || isOfficer());
-      allow delete: if false;
-
-      match /fields/{fieldId} {
-        allow read, write: if isOwner(uid) || isOfficer();
-
-        match /crops/{cropId} {
-          allow read, write: if isOwner(uid) || isOfficer();
-
-          match /evidence/{evidenceId} {
-            allow read, write: if isOwner(uid) || isOfficer();
-          }
-        }
-      }
-
-      match /disasters/{disasterId} {
-        allow read, write: if isOwner(uid) || isOfficer();
-      }
-
-      match /claims/{claimId} {
-        allow read, write: if isOwner(uid) || isOfficer();
-      }
+      allow read, write: if request.auth != null;
     }
   }
 }

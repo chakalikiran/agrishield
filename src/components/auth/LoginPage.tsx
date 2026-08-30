@@ -17,7 +17,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
-  const { login, seedOfficerTestAccount, error, clearError, loading } = useAuth();
+  const { login, loginAsOfficer, error, clearError, loading } = useAuth();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -47,24 +47,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister }) => {
   const handleOfficerSeedLogin = async () => {
     setLocalError(null);
     clearError();
-    if (!email.trim() || !password) {
-      setLocalError("Please enter an email and password to create/sign in as officer.");
-      return;
-    }
     try {
       setIsSubmitting(true);
-      try {
-        await login(email, password);
-      } catch {
-        // If account doesn't exist in Auth yet, create it
-        const { createUserWithEmailAndPassword } = await import("firebase/auth");
-        const { auth } = await import("../../lib/firebase");
-        await createUserWithEmailAndPassword(auth, email.trim(), password);
-        await login(email, password);
-      }
-      await seedOfficerTestAccount();
+      await loginAsOfficer();
     } catch (err: any) {
-      setLocalError(err.message || "Failed to login as officer.");
+      setLocalError(err.message || "Failed to login as insurance officer.");
     } finally {
       setIsSubmitting(false);
     }
