@@ -262,7 +262,9 @@ app.get("/api/weather", async (req, res) => {
 
     const times = data.daily.time || [];
     const rainSums = data.daily.precipitation_sum || data.daily.rain_sum || [];
-    const windSpeeds = data.daily.wind_speed_10m_max || [];
+    const rawWindSpeeds = data.daily.wind_speed_10m_max || [];
+    // Convert Open-Meteo wind speeds (m/s) to km/h for UI-consistent presentation
+    const windSpeeds = (rawWindSpeeds || []).map((w: number) => Number(((w || 0) * 3.6).toFixed(1)));
     const maxTemps = data.daily.temperature_2m_max || [];
 
     let maxRain = 0;

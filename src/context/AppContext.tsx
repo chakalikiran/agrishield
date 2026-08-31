@@ -215,6 +215,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     activeFieldIdRef.current = activeFieldId;
   }, [activeFieldId]);
+  // Incrementing id used to ignore stale weather fetch responses
+  const weatherFetchIdRef = useRef(0);
+  const lastWeatherFetchKeyRef = useRef<string | null>(null);
 
   const [isLoadingFirestore, setIsLoadingFirestore] = useState<boolean>(true);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
@@ -430,24 +433,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // Fetch weather for active field if exists
+  // Derive the active field coordinates and relevant disaster date as primitives so
+  // the effect can depend only on these values (avoiding array-reference churn).
+  const _activeField = fields.find((f) => f.id === activeFieldId) || null;
+  const fieldLat = _activeField?.centerLat ?? null;
+  const fieldLng = _activeField?.centerLng ?? null;
+  const _activeDisaster = disasterReports.find((d) => d.fieldId === activeFieldId) || null;
+  const disasterDate = _activeDisaster?.date ?? null;
+
+  // Fetch weather for active field if its coordinates or the relevant disaster date changes.
   useEffect(() => {
-    const activeField = fields.find((f) => f.id === activeFieldId);
-    if (!activeField || activeField.centerLat == null || activeField.centerLng == null) {
+
+    // Only run when we have coordinates
+    if (fieldLat == null || fieldLng == null) {
       setWeatherData(null);
       setIsWeatherLoading(false);
       return;
     }
 
-    setIsWeatherLoading(true);
-
-    // Dynamic date range: use active disaster report date if exists (+/- 3 days), else past 7 days up to today
-    const activeDisaster = disasterReports.find((d) => d.fieldId === activeFieldId);
+    // Build start/end date window based on disaster date or recent week
     let startDate: string;
     let endDate: string;
-
-    if (activeDisaster && activeDisaster.date) {
-      const d = new Date(activeDisaster.date);
+    if (disasterDate) {
+      const d = new Date(disasterDate);
       const startD = new Date(d);
       startD.setDate(startD.getDate() - 3);
       const endD = new Date(d);
@@ -462,54 +470,109 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       endDate = today.toISOString().split("T")[0];
     }
 
-    fetch(
-      `/api/weather?lat=${activeField.centerLat}&lng=${activeField.centerLng}&startDate=${startDate}&endDate=${endDate}`
-    )
+    // Prevent duplicate fetches for identical parameters
+    const fetchKey = `${fieldLat}:${fieldLng}:${startDate}:${endDate}`;
+    if (lastWeatherFetchKeyRef.current === fetchKey) {
+      return; // same parameters — no need to refetch
+    }
+
+    setIsWeatherLoading(true);
+    const controller = new AbortController();
+    const timeoutMs = 10000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const thisFetchId = ++weatherFetchIdRef.current;
+    lastWeatherFetchKeyRef.current = fetchKey;
+
+    const weatherUrl = `/api/weather?lat=${fieldLat}&lng=${fieldLng}&startDate=${startDate}&endDate=${endDate}`;
+    console.debug("[weather] fetch start", { weatherUrl, fetchId: thisFetchId });
+
+    fetch(weatherUrl, { signal: controller.signal })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch weather data");
+        if (!res.ok) throw new Error(`Failed to fetch weather data: ${res.status}`);
         return res.json();
       })
       .then((data) => {
-        if (data && data.daily && data.daily.time) {
-          const days = data.daily.time || [];
-          const rain = data.daily.precipitation_sum || [];
-          const temps = data.daily.temperature_2m_max || [];
-          const winds = data.daily.wind_speed_10m_max || [];
-
-          const dailyPoints = days.map((day: string, idx: number) => ({
-            date: day,
-            maxTempC: temps[idx] ?? 0,
-            rainfallMm: rain[idx] ?? 0,
-            windSpeedKmh: winds[idx] ?? 0,
-            condition:
-              (rain[idx] || 0) > 25 ? "Heavy Rain" : (rain[idx] || 0) > 5 ? "Moderate Rain" : "Clear / Sunny",
-            isExtremeEvent: (rain[idx] || 0) > 30,
-          }));
-
-          setWeatherData({
-            source: data.source || "open_meteo",
-            location: { lat: activeField.centerLat, lng: activeField.centerLng },
-            daily: dailyPoints,
-            correlationSummary: data.correlationSummary || {
-              peakRainfallDate: days[0] || startDate,
-              peakRainfallMm: 0,
-              peakWindSpeedKmh: 0,
-              avgMaxTempC: 0,
-              extremeEventConfirmed: false,
-              eventLabel: "Meteorological Monitored Window",
-              correlationStatement: "Live telemetry fetched from Open-Meteo archive/forecast.",
-            },
-          });
-        } else {
-          setWeatherData(null);
+        // Ignore stale responses
+        if (thisFetchId !== weatherFetchIdRef.current) {
+          console.debug("[weather] stale response ignored", { fetchId: thisFetchId });
+          return;
         }
+
+        if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
+          console.warn("[weather] no daily data returned from /api/weather");
+          setWeatherData(null);
+          return;
+        }
+
+        const days = data.daily.time || [];
+        const rain = data.daily.precipitation_sum || data.daily.rain_sum || [];
+        const temps = data.daily.temperature_2m_max || [];
+        const winds = data.daily.wind_speed_10m_max || [];
+
+        const dailyPoints = days.map((day: string, idx: number) => ({
+          date: day,
+          maxTempC: temps[idx] ?? 0,
+          rainfallMm: rain[idx] ?? 0,
+          windSpeedKmh: winds[idx] ?? 0,
+          condition: (rain[idx] || 0) > 25 ? "Heavy Rain" : (rain[idx] || 0) > 5 ? "Moderate Rain" : "Clear / Sunny",
+          isExtremeEvent: (rain[idx] || 0) > 30,
+        }));
+
+        const peakEntry = dailyPoints.reduce((p, c) => (c.rainfallMm > (p.rainfallMm || 0) ? c : p), dailyPoints[0]);
+        const peakRainfallMm = peakEntry?.rainfallMm || 0;
+        const peakRainfallDate = peakEntry?.date || days[0] || startDate;
+        const peakWindSpeedKmh = Math.max(...dailyPoints.map((d) => d.windSpeedKmh || 0));
+        const avgMaxTempC = dailyPoints.length > 0 ? Number((dailyPoints.reduce((s, d) => s + (d.maxTempC || 0), 0) / dailyPoints.length).toFixed(1)) : 0;
+
+        // Correlate with disaster date only when present; don't assert confirmation without data
+        const disasterDateIso = disasterDate ? new Date(disasterDate).toISOString().split("T")[0] : null;
+        let extremeEventConfirmed = false;
+        if (disasterDateIso) {
+          const diffDays = Math.abs((new Date(peakRainfallDate).getTime() - new Date(disasterDateIso).getTime()) / (1000 * 60 * 60 * 24));
+          extremeEventConfirmed = peakRainfallMm > 30 && diffDays <= 1;
+        }
+
+        const correlationSummary = {
+          peakRainfallDate,
+          peakRainfallMm: Number((peakRainfallMm || 0).toFixed(1)),
+          peakWindSpeedKmh: Number((peakWindSpeedKmh || 0).toFixed(1)),
+          avgMaxTempC,
+          extremeEventConfirmed,
+          eventLabel: extremeEventConfirmed ? "Heavy Precipitation Anomaly Detected" : "Monitored Meteorological Window",
+          correlationStatement: extremeEventConfirmed ? `Peak rainfall of ${peakRainfallMm.toFixed(1)} mm recorded around ${peakRainfallDate}.` : ``,
+        };
+
+        setWeatherData({
+          source: data.source || "open_meteo",
+          location: { lat: fieldLat, lng: fieldLng },
+          daily: dailyPoints,
+          correlationSummary,
+        });
       })
-      .catch((err) => {
-        console.warn("Weather fetch error:", err);
+      .catch((err: any) => {
+        if (err && err.name === "AbortError") {
+          console.warn("[weather] fetch aborted (timeout)");
+        } else {
+          console.warn("[weather] fetch error:", err);
+        }
+        // on error, clear weatherData (no simulated fallback)
         setWeatherData(null);
       })
-      .finally(() => setIsWeatherLoading(false));
-  }, [activeFieldId, fields, disasterReports]);
+      .finally(() => {
+        clearTimeout(timeoutId);
+        // Only clear loading if this is the latest fetch
+        if (thisFetchId === weatherFetchIdRef.current) {
+          setIsWeatherLoading(false);
+        }
+      });
+
+    return () => {
+      // abort this fetch when params change or component unmounts
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
+  }, [activeFieldId, fieldLat, fieldLng, disasterDate]);
 
   // Calculate evidence completeness for selected field
   const relevantEvidence = evidenceList.filter((e) => e.fieldId === activeFieldId);
