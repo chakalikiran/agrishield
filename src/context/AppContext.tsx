@@ -824,18 +824,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {
       const isSevere = disasterType === "Flood" || disasterType === "Heavy Rainfall";
       return {
-        cropType: cropType || "Rice (Paddy)",
-        visibleCondition: isSevere
-          ? "Waterlogged soil with extensive leaf lodging"
-          : "Moderate moisture stress",
-        damageSeverity: isSevere ? "Severe" : "Moderate",
-        severityScore: isSevere ? 74 : 42,
-        possibleDamageCategory: isSevere ? "Flood/water damage" : "Physical crop damage",
-        confidence: 88,
-        explanation:
-          "Preliminary assessment: Inundation and foliar lodging noted at field coordinates.",
-        featuresDetected: ["Canopy lodging", "Surface water pooling", "Moisture chlorosis"],
-        anomalyFlags: [],
+        finalStatus: "NEEDS REVIEW",
+        evidenceQuality: "MEDIUM",
+        cropIdentified: cropType || "Unknown",
+        evidenceType: evidenceType,
+        cropStage: stage,
+        observedConditions: "Image analysis unavailable locally",
+        damageSeverity: "UNKNOWN",
+        confidence: 0,
+        reason: "Offline fallback. Analysis requires human review.",
+        detectedDamage: [],
+        estimatedAffectedArea: "UNKNOWN",
+        evidenceMismatch: false,
+        humanReviewRequired: true,
         isFallback: true,
         fallbackReason: "Processed via on-device local fallback model",
         analyzedAt: new Date().toISOString(),
@@ -894,7 +895,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const damageClassification: DamageSeverity =
-      aiAssessment?.damageSeverity || evidenceData.damageClassification || "Moderate";
+      aiAssessment?.damageSeverity || evidenceData.damageClassification || "MODERATE";
 
     const baseRecord: EvidenceRecord = {
       ...evidenceData,
@@ -1085,9 +1086,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let totalSevere = 0;
 
     postEvidence.forEach((e) => {
-      const sev = e.aiAssessment?.damageSeverity || e.damageClassification || "Moderate";
-      if (sev === "Healthy") totalHealthy++;
-      else if (sev === "Moderate") totalModerate++;
+      const sev = e.aiAssessment?.damageSeverity || e.damageClassification || "MODERATE";
+      if (sev === "NONE") totalHealthy++;
+      else if (sev === "MODERATE") totalModerate++;
       else totalSevere++;
     });
 

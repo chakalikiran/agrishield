@@ -214,7 +214,9 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
         evidenceType: currentStep.evidenceType,
         stepName: `Step ${currentStep.stepNumber}: ${currentStep.title}`,
         notes: notes || currentStep.instruction,
-        damageClassification: currentAIResult?.damageSeverity || "Severe",
+        damageClassification: currentAIResult?.damageSeverity && currentAIResult.damageSeverity !== "UNKNOWN" 
+          ? currentAIResult.damageSeverity 
+          : "SEVERE",
         aiAssessment: currentAIResult || undefined,
       });
 
@@ -443,23 +445,23 @@ export const GuidedEvidenceCapture: React.FC<{ onComplete?: () => void }> = ({ o
             </div>
             <span
               className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                currentAIResult.damageSeverity === "Healthy"
+                currentAIResult.damageSeverity === "NONE"
                   ? "bg-emerald-100 text-emerald-800"
-                  : currentAIResult.damageSeverity === "Moderate"
+                  : currentAIResult.damageSeverity === "MODERATE"
                   ? "bg-amber-100 text-amber-800"
                   : "bg-rose-100 text-rose-800"
               }`}
             >
-              {currentAIResult.damageSeverity} Damage ({currentAIResult.severityScore}% impact)
+              {currentAIResult.damageSeverity} Damage ({currentAIResult.estimatedAffectedArea || "0%"} impact)
             </span>
           </div>
 
           <p className="text-xs text-slate-700 leading-relaxed font-medium">
-            {currentAIResult.explanation}
+            {currentAIResult.reason}
           </p>
 
           <div className="mt-2 flex flex-wrap gap-1">
-            {currentAIResult.featuresDetected?.map((feat, i) => (
+            {currentAIResult.detectedDamage?.map((feat, i) => (
               <span
                 key={i}
                 className="text-[10px] font-medium bg-white border border-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded shadow-2xs"

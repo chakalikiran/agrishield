@@ -143,7 +143,7 @@ export const EvidenceTimeline: React.FC<{
               <div
                 className={`absolute -left-6 sm:-left-8 top-1.5 h-5 w-5 rounded-full border-2 border-white shadow flex items-center justify-center text-white text-[10px] font-bold ${
                   isPost
-                    ? ev.damageClassification === "Severe"
+                    ? ev.damageClassification === "SEVERE"
                       ? "bg-rose-600"
                       : "bg-amber-500"
                     : "bg-emerald-600"
@@ -209,9 +209,9 @@ export const EvidenceTimeline: React.FC<{
                           </span>
                           <span
                             className={`font-bold text-[9px] px-1.5 py-0.5 rounded ${
-                              ev.aiAssessment.damageSeverity === "Healthy"
+                              ev.aiAssessment.damageSeverity === "NONE"
                                 ? "bg-emerald-200 text-emerald-900"
-                                : ev.aiAssessment.damageSeverity === "Moderate"
+                                : ev.aiAssessment.damageSeverity === "MODERATE"
                                 ? "bg-amber-200 text-amber-900"
                                 : "bg-rose-200 text-rose-900"
                             }`}
@@ -220,7 +220,7 @@ export const EvidenceTimeline: React.FC<{
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-600 leading-normal">
-                          {ev.aiAssessment.explanation}
+                          {ev.aiAssessment.reason}
                         </p>
                       </div>
                     )}

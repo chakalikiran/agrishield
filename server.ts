@@ -100,56 +100,82 @@ app.post("/api/ai/assess-crop-damage", async (req, res) => {
       const mockResult = {
         isFallback: true,
         fallbackReason: !ai ? "Gemini API client not initialized" : "Unable to decode image bytes",
-        cropType: cropType || "Rice (Paddy)",
-        visibleCondition: isSevere
-          ? "Waterlogged soil with extensive leaf lodging and silt deposition"
-          : "Mild leaf discoloration and bending without complete root rot",
-        damageSeverity: isSevere ? "Severe" : "Moderate",
-        severityScore: isSevere ? 72 : 45,
-        possibleDamageCategory:
-          disasterType === "Flood" || disasterType === "Heavy Rainfall"
-            ? "Flood/water damage"
-            : "Physical crop damage",
-        confidence: 89,
-        explanation: `AI visual analysis detects visible ${
-          isSevere
-            ? "severe inundation and canopy submergence"
-            : "moderate lodging and moisture stress"
-        } consistent with the reported ${disasterType} during the ${stage} stage.`,
-        featuresDetected: [
-          "Canopy lodging / flatten stalks",
-          "Excess surface water accumulation",
-          "Leaf tip chlorosis from prolonged water contact",
-          "Vegetation density reduction",
-        ],
-        anomalyFlags: [],
+        finalStatus: "NEEDS REVIEW",
+        evidenceType: evidenceType || "Post-disaster",
+        evidenceQuality: "MEDIUM",
+        cropIdentified: cropType || "Rice (Paddy)",
+        cropStage: stage || "Flowering",
+        observedConditions: "Cannot determine field conditions offline",
+        damageSeverity: "UNKNOWN",
+        estimatedAffectedArea: "UNKNOWN",
+        detectedDamage: [],
+        evidenceMismatch: false,
+        confidence: 0,
+        reason: "AI service temporarily unavailable. Human review required for damage assessment.",
+        humanReviewRequired: true,
       };
       return res.json({ success: true, assessment: mockResult });
     }
 
-    const prompt = `You are an expert Agricultural Agronomist and Crop Insurance Damage Assessor specializing in field damage assessment for crop insurance claims.
-Analyze this crop image taken by a farmer following a reported disaster event.
+    const prompt = `You are AgriShield's AI Evidence Verification and Damage Assessment Engine.
 
-Context:
-- Registered Crop: ${cropType}
-- Crop Stage: ${stage}
-- Reported Disaster: ${disasterType}
-- Evidence Category: ${evidenceType}
+FIRST verify what is actually visible in the uploaded image. Do NOT assume it is a crop photograph based on the farmer's claim, disaster type, GPS, weather, or crop registration.
+Context (Treat this as metadata, NOT visual proof):
+- Registered Crop: \${cropType}
+- Crop Stage: \${stage}
+- Reported Disaster: \${disasterType}
+- Evidence Category: \${evidenceType}
 
-Return a strictly formatted JSON object with these exact keys:
+If the image is not clearly agricultural evidence (for example: MRI/CT/X-ray, document, syllabus, PDF, screenshot, computer/mobile screen, random or unrelated image), immediately return:
+
+FINAL STATUS: INVALID EVIDENCE
+REASON: [why the image is invalid]
+DAMAGE: NOT APPLICABLE
+DAMAGE SEVERITY: NOT APPLICABLE
+AFFECTED AREA: NOT APPLICABLE
+IMPACT PERCENTAGE: NOT APPLICABLE
+
+STOP. Do not perform any crop or damage analysis.
+
+Only if the image clearly shows a crop/field should you:
+1. Identify the visible crop and stage if possible.
+2. Detect only damage that is visually observable.
+3. Estimate severity only when supported by the image.
+4. Estimate affected area/percentage ONLY when the image provides sufficient evidence; otherwise return UNKNOWN.
+5. Flag inconsistencies with the registered crop/stage as EVIDENCE MISMATCH.
+
+Never invent crop damage, severity, or percentages.
+Never use the reported disaster, weather, GPS, or claim information as proof of visual damage.
+Clearly distinguish observed facts from assumptions.
+
+Final status must be one of:
+VERIFIED EVIDENCE
+NEEDS REVIEW
+INVALID EVIDENCE
+EVIDENCE MISMATCH
+
+AI assessment is preliminary; final insurance decisions require human review.
+
+OUTPUT
+Return a strictly formatted JSON object with these exact keys. Ensure the keys follow this exact naming and casing:
+
 {
-  "cropType": "identified crop species or match confirmation",
-  "visibleCondition": "concise description of visible vegetation condition (e.g. submerged stalks, foliage lodging, healthy canopy, hail punctures)",
-  "damageSeverity": "Healthy" | "Moderate" | "Severe",
-  "severityScore": number between 0 (pristine) and 100 (total destruction),
-  "possibleDamageCategory": "Flood/water damage" | "Wind damage" | "Physical crop damage" | "Disease/pest indication" | "Hailstorm damage" | "Drought stress" | "None (Healthy)",
-  "confidence": number between 50 and 98,
-  "explanation": "2-3 sentences explaining specific visual botanical symptoms and structural impact observed in the photo.",
-  "featuresDetected": ["feature 1", "feature 2", "feature 3"],
-  "anomalyFlags": [] // array of strings if photo appears fake, duplicate, indoor, non-agricultural, or completely mismatched crop
+  "finalStatus": "VERIFIED EVIDENCE" | "NEEDS REVIEW" | "INVALID EVIDENCE" | "EVIDENCE MISMATCH",
+  "evidenceType": "Identified evidence type from the image, or the provided category",
+  "evidenceQuality": "HIGH" | "MEDIUM" | "LOW" | "INVALID",
+  "cropIdentified": "Crop name visually identified or 'Unknown'",
+  "cropStage": "Crop stage visually apparent",
+  "observedConditions": "Concise description of field conditions based ONLY on what is visible",
+  "detectedDamage": ["List", "of", "confirmed", "visible", "damages", "or 'None'"],
+  "damageSeverity": "NONE" | "LOW" | "MODERATE" | "HIGH" | "SEVERE" | "UNKNOWN",
+  "estimatedAffectedArea": "Percentage or 'UNKNOWN' if cannot be reliably estimated",
+  "evidenceMismatch": true | false,
+  "confidence": number between 0 and 100,
+  "reason": "Detailed explanation of the visual findings that justify the assessment",
+  "humanReviewRequired": true | false
 }
 
-Important: Provide objective preliminary assessment metrics. Return valid JSON only.`;
+Important: Return valid JSON only without markdown wrapping.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.7-flash",
@@ -185,6 +211,12 @@ Important: Provide objective preliminary assessment metrics. Return valid JSON o
       throw new Error("Failed to parse AI response JSON");
     }
 
+    if (parsedResult.finalStatus === "INVALID EVIDENCE") {
+      parsedResult.damageSeverity = "UNKNOWN";
+      parsedResult.estimatedAffectedArea = "UNKNOWN";
+      parsedResult.detectedDamage = [];
+    }
+
     parsedResult.isFallback = false;
     return res.json({ success: true, assessment: parsedResult });
   } catch (error: any) {
@@ -199,23 +231,19 @@ Important: Provide objective preliminary assessment metrics. Return valid JSON o
       assessment: {
         isFallback: true,
         fallbackReason: error?.message || "AI service temporarily unavailable",
-        cropType: req.body?.cropType || "Rice (Paddy)",
-        visibleCondition: isSevere
-          ? "Visible waterlogging and vegetation flattening under high moisture conditions"
-          : "Mild foliar stress and localized canopy distortion",
-        damageSeverity: isSevere ? "Severe" : "Moderate",
-        severityScore: isSevere ? 72 : 45,
-        possibleDamageCategory: isSevere ? "Flood/water damage" : "Physical crop damage",
-        confidence: 86,
-        explanation: `Automated preliminary analysis indicates significant field impact consistent with reported ${
-          req.body?.disasterType || "weather impact"
-        }.`,
-        featuresDetected: [
-          "Vegetative canopy lodging",
-          "Soil water saturation",
-          "Foliar moisture stress",
-        ],
-        anomalyFlags: [],
+        finalStatus: "NEEDS REVIEW",
+        evidenceType: req.body?.evidenceType || "Post-disaster",
+        evidenceQuality: "MEDIUM",
+        cropIdentified: req.body?.cropType || "Unknown",
+        cropStage: req.body?.stage || "Unknown",
+        observedConditions: "Cannot determine visually due to API failure",
+        detectedDamage: [],
+        damageSeverity: "UNKNOWN",
+        estimatedAffectedArea: "UNKNOWN",
+        evidenceMismatch: false,
+        confidence: 0,
+        reason: "Image analysis failed or was unavailable. Manual verification required.",
+        humanReviewRequired: true,
       },
     });
   }
