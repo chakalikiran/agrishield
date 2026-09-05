@@ -221,10 +221,12 @@ export type EvidenceType =
   | "Damaged area"
   | "Close-up";
 
-export type DamageSeverity = "NONE" | "LOW" | "MODERATE" | "HIGH" | "SEVERE" | "UNKNOWN";
+export type DamageSeverity = "NONE" | "LOW" | "MODERATE" | "HIGH" | "SEVERE" | "UNKNOWN" | "NOT APPLICABLE";
 
 export interface AIAssessmentResult {
   finalStatus: "VERIFIED EVIDENCE" | "NEEDS REVIEW" | "INVALID EVIDENCE" | "EVIDENCE MISMATCH";
+  contentIdentified?: string;
+  isAgricultural?: boolean;
   evidenceType: string;
   evidenceQuality: "HIGH" | "MEDIUM" | "LOW" | "INVALID";
   cropIdentified: string;
@@ -233,6 +235,7 @@ export interface AIAssessmentResult {
   detectedDamage: string[];
   damageSeverity: DamageSeverity;
   estimatedAffectedArea?: string;
+  impactPercentage?: string;
   evidenceMismatch: boolean;
   confidence: number;
   reason: string;

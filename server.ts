@@ -91,27 +91,26 @@ app.post("/api/ai/assess-crop-damage", async (req, res) => {
     // Resolve image into pure Base64 bytes & MIME type
     const resolvedImage = await resolveImageToParts(imageBase64, mimeType);
 
+    // Fallback if AI or image bytes cannot be resolved
     if (!ai || !resolvedImage || !resolvedImage.base64) {
-      // Fallback demo/mock assessment with realistic domain parameters
-      const isSevere =
-        disasterType === "Flood" ||
-        disasterType === "Heavy Rainfall" ||
-        evidenceType === "Damaged area";
       const mockResult = {
         isFallback: true,
         fallbackReason: !ai ? "Gemini API client not initialized" : "Unable to decode image bytes",
         finalStatus: "NEEDS REVIEW",
+        isAgricultural: false,
+        contentIdentified: "Unverified image bytes",
         evidenceType: evidenceType || "Post-disaster",
-        evidenceQuality: "MEDIUM",
-        cropIdentified: cropType || "Rice (Paddy)",
-        cropStage: stage || "Flowering",
-        observedConditions: "Cannot determine field conditions offline",
+        evidenceQuality: "LOW",
+        cropIdentified: "Unknown",
+        cropStage: "Unknown",
+        observedConditions: "Cannot verify visual evidence offline. Manual human review required.",
         damageSeverity: "UNKNOWN",
-        estimatedAffectedArea: "UNKNOWN",
+        estimatedAffectedArea: "Not applicable",
+        impactPercentage: "Not applicable",
         detectedDamage: [],
         evidenceMismatch: false,
         confidence: 0,
-        reason: "AI service temporarily unavailable. Human review required for damage assessment.",
+        reason: "Image verification could not be completed automatically. Human officer review required.",
         humanReviewRequired: true,
       };
       return res.json({ success: true, assessment: mockResult });
@@ -119,90 +118,134 @@ app.post("/api/ai/assess-crop-damage", async (req, res) => {
 
     const prompt = `You are AgriShield's AI Evidence Verification and Damage Assessment Engine.
 
-FIRST verify what is actually visible in the uploaded image. Do NOT assume it is a crop photograph based on the farmer's claim, disaster type, GPS, weather, or crop registration.
-Context (Treat this as metadata, NOT visual proof):
-- Registered Crop: \${cropType}
-- Crop Stage: \${stage}
-- Reported Disaster: \${disasterType}
-- Evidence Category: \${evidenceType}
+You must follow this STRICT TWO-STEP VERIFICATION PROTOCOL:
 
-If the image is not clearly agricultural evidence (for example: MRI/CT/X-ray, document, syllabus, PDF, screenshot, computer/mobile screen, random or unrelated image), immediately return:
+================================================================================
+STEP 1: VISUAL CONTENT VERIFICATION (MANDATORY GATE)
+================================================================================
+Determine what the uploaded image actually depicts based ONLY on visual inspection.
+CRITICAL RULES:
+- Do NOT assume the image contains crop or field damage.
+- Do NOT use the farmer's registered crop, disaster type, GPS, weather, or metadata as proof of visual content.
+- Never invent, assume, or guess damage that is not visually observable in the image.
 
-FINAL STATUS: INVALID EVIDENCE
-REASON: [why the image is invalid]
-DAMAGE: NOT APPLICABLE
-DAMAGE SEVERITY: NOT APPLICABLE
-AFFECTED AREA: NOT APPLICABLE
-IMPACT PERCENTAGE: NOT APPLICABLE
+Analyze the image content into ONE of these:
 
-STOP. Do not perform any crop or damage analysis.
+CASE A: INVALID EVIDENCE
+The image is clearly NOT an agricultural field or farm crop:
+- Medical imagery (MRI scans, CT scans, X-rays, ultrasound, anatomical scans)
+- Documents, certificates, paper, text pages, books, PDFs, printed forms, letters
+- Screenshots (computer screens, smartphone screens, web browsers, UI, code, apps, WhatsApp chats)
+- Indoor scenes, furniture, appliances, household items, cars, vehicles, electronics
+- Human selfies, portraits, pets, random objects, memes, non-agricultural photos
+ACTION:
+- STOP IMMEDIATELY. Do NOT perform any crop, stage, or damage analysis.
+- finalStatus MUST BE "INVALID EVIDENCE"
+- isAgricultural MUST BE false
+- contentIdentified MUST accurately state what the image is (e.g., "Brain MRI scan", "Printed document / medical report", "Mobile phone screenshot")
+- damageSeverity MUST BE "NOT APPLICABLE"
+- estimatedAffectedArea MUST BE "Not applicable"
+- impactPercentage MUST BE "Not applicable"
+- detectedDamage MUST BE []
+- cropIdentified MUST BE "Not applicable"
+- cropStage MUST BE "Not applicable"
+- reason MUST clearly explain why it was rejected (e.g., "The uploaded image is a brain MRI scan and does not contain an agricultural field or crop. Crop damage assessment is not applicable.")
 
-Only if the image clearly shows a crop/field should you:
-1. Identify the visible crop and stage if possible.
-2. Detect only damage that is visually observable.
-3. Estimate severity only when supported by the image.
-4. Estimate affected area/percentage ONLY when the image provides sufficient evidence; otherwise return UNKNOWN.
-5. Flag inconsistencies with the registered crop/stage as EVIDENCE MISMATCH.
+CASE B: UNCERTAIN (NEEDS REVIEW)
+The image is too blurry, dark, heavily degraded, or ambiguous to reliably verify as agricultural:
+ACTION:
+- STOP. Do NOT guess damage or percentages.
+- finalStatus MUST BE "NEEDS REVIEW"
+- isAgricultural MUST BE false
+- damageSeverity MUST BE "UNKNOWN"
+- estimatedAffectedArea MUST BE "Not applicable"
+- impactPercentage MUST BE "Not applicable"
+- detectedDamage MUST BE []
+- reason MUST explain that the image quality is insufficient for verification and human review is required.
 
-Never invent crop damage, severity, or percentages.
-Never use the reported disaster, weather, GPS, or claim information as proof of visual damage.
-Clearly distinguish observed facts from assumptions.
+CASE C: VALID AGRICULTURAL IMAGE
+The image clearly depicts an agricultural crop, paddy field, orchard, plantation, or farm plot:
+ACTION:
+- Continue to crop, growth stage, and damage analysis.
+- Visually identify the crop and stage if recognizable.
+- If the visible crop visibly contradicts the registered crop (${cropType}), set finalStatus to "EVIDENCE MISMATCH". Otherwise "VERIFIED EVIDENCE".
+- Detect ONLY damages that are visually supported (e.g. "Flood inundation", "Stem lodging", "Leaf rot", "Hail tears"). If no damage is observed, set damageSeverity to "NONE" and estimatedAffectedArea to "0%".
+- Set damageSeverity: "NONE" | "LOW" | "MODERATE" | "HIGH" | "SEVERE"
+- Estimate affected area percentage ONLY when the image provides sufficient visual perspective (e.g. "65%"). If the view is too close or insufficient to quantify, return "UNKNOWN".
+- impactPercentage: e.g. "65%" or "0%" (or "Not applicable" if undamaged).
 
-Final status must be one of:
-VERIFIED EVIDENCE
-NEEDS REVIEW
-INVALID EVIDENCE
-EVIDENCE MISMATCH
-
-AI assessment is preliminary; final insurance decisions require human review.
-
-OUTPUT
-Return a strictly formatted JSON object with these exact keys. Ensure the keys follow this exact naming and casing:
-
+================================================================================
+OUTPUT FORMAT
+================================================================================
+Return ONLY a valid JSON object adhering strictly to this schema:
 {
-  "finalStatus": "VERIFIED EVIDENCE" | "NEEDS REVIEW" | "INVALID EVIDENCE" | "EVIDENCE MISMATCH",
-  "evidenceType": "Identified evidence type from the image, or the provided category",
+  "finalStatus": "INVALID EVIDENCE" | "NEEDS REVIEW" | "VERIFIED EVIDENCE" | "EVIDENCE MISMATCH",
+  "isAgricultural": boolean,
+  "contentIdentified": string,
+  "evidenceType": "${evidenceType}",
   "evidenceQuality": "HIGH" | "MEDIUM" | "LOW" | "INVALID",
-  "cropIdentified": "Crop name visually identified or 'Unknown'",
-  "cropStage": "Crop stage visually apparent",
-  "observedConditions": "Concise description of field conditions based ONLY on what is visible",
-  "detectedDamage": ["List", "of", "confirmed", "visible", "damages", "or 'None'"],
-  "damageSeverity": "NONE" | "LOW" | "MODERATE" | "HIGH" | "SEVERE" | "UNKNOWN",
-  "estimatedAffectedArea": "Percentage or 'UNKNOWN' if cannot be reliably estimated",
-  "evidenceMismatch": true | false,
-  "confidence": number between 0 and 100,
-  "reason": "Detailed explanation of the visual findings that justify the assessment",
-  "humanReviewRequired": true | false
-}
+  "cropIdentified": string,
+  "cropStage": string,
+  "observedConditions": string,
+  "detectedDamage": string[],
+  "damageSeverity": "NOT APPLICABLE" | "UNKNOWN" | "NONE" | "LOW" | "MODERATE" | "HIGH" | "SEVERE",
+  "estimatedAffectedArea": string,
+  "impactPercentage": string,
+  "evidenceMismatch": boolean,
+  "confidence": number,
+  "reason": string,
+  "humanReviewRequired": boolean
+}`;
 
-Important: Return valid JSON only without markdown wrapping.`;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: resolvedImage.base64,
-              mimeType: resolvedImage.mimeType,
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: resolvedImage.base64,
+                mimeType: resolvedImage.mimeType,
+              },
             },
-          },
-          {
-            text: prompt,
-          },
-        ],
-      },
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+            {
+              text: prompt,
+            },
+          ],
+        },
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
+    } catch (primaryErr: any) {
+      console.warn("Primary model error, attempting gemini-3.1-flash-lite:", primaryErr?.message || primaryErr);
+      response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-lite",
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: resolvedImage.base64,
+                mimeType: resolvedImage.mimeType,
+              },
+            },
+            {
+              text: prompt,
+            },
+          ],
+        },
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
+    }
 
     const text = response.text || "{}";
     let parsedResult;
     try {
       parsedResult = JSON.parse(text);
     } catch {
-      // In case json wrapper was added
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       parsedResult = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
     }
@@ -211,38 +254,53 @@ Important: Return valid JSON only without markdown wrapping.`;
       throw new Error("Failed to parse AI response JSON");
     }
 
-    if (parsedResult.finalStatus === "INVALID EVIDENCE") {
-      parsedResult.damageSeverity = "UNKNOWN";
-      parsedResult.estimatedAffectedArea = "UNKNOWN";
+    // Strict programmatic enforcement of rules for invalid images:
+    if (parsedResult.finalStatus === "INVALID EVIDENCE" || parsedResult.isAgricultural === false) {
+      parsedResult.finalStatus = "INVALID EVIDENCE";
+      parsedResult.isAgricultural = false;
+      parsedResult.damageSeverity = "NOT APPLICABLE";
+      parsedResult.estimatedAffectedArea = "Not applicable";
+      parsedResult.impactPercentage = "Not applicable";
       parsedResult.detectedDamage = [];
+      parsedResult.cropIdentified = "Not applicable";
+      parsedResult.cropStage = "Not applicable";
+      parsedResult.evidenceQuality = "INVALID";
+      parsedResult.humanReviewRequired = false;
+    } else if (parsedResult.finalStatus === "NEEDS REVIEW") {
+      parsedResult.finalStatus = "NEEDS REVIEW";
+      parsedResult.isAgricultural = false;
+      parsedResult.damageSeverity = "UNKNOWN";
+      parsedResult.estimatedAffectedArea = "Not applicable";
+      parsedResult.impactPercentage = "Not applicable";
+      parsedResult.detectedDamage = [];
+      parsedResult.humanReviewRequired = true;
     }
 
     parsedResult.isFallback = false;
     return res.json({ success: true, assessment: parsedResult });
   } catch (error: any) {
     console.error("Gemini assessment error:", error);
-    const isSevere =
-      req.body?.disasterType === "Flood" ||
-      req.body?.disasterType === "Heavy Rainfall" ||
-      req.body?.evidenceType === "Damaged area";
-    // Return structured safe fallback
+    // Return structured safe fallback without assuming damage
     return res.json({
       success: true,
       assessment: {
         isFallback: true,
         fallbackReason: error?.message || "AI service temporarily unavailable",
         finalStatus: "NEEDS REVIEW",
+        isAgricultural: false,
+        contentIdentified: "Unverified image",
         evidenceType: req.body?.evidenceType || "Post-disaster",
-        evidenceQuality: "MEDIUM",
-        cropIdentified: req.body?.cropType || "Unknown",
-        cropStage: req.body?.stage || "Unknown",
-        observedConditions: "Cannot determine visually due to API failure",
+        evidenceQuality: "LOW",
+        cropIdentified: "Unknown",
+        cropStage: "Unknown",
+        observedConditions: "Cannot verify visual evidence automatically. Manual review required.",
         detectedDamage: [],
         damageSeverity: "UNKNOWN",
-        estimatedAffectedArea: "UNKNOWN",
+        estimatedAffectedArea: "Not applicable",
+        impactPercentage: "Not applicable",
         evidenceMismatch: false,
         confidence: 0,
-        reason: "Image analysis failed or was unavailable. Manual verification required.",
+        reason: "Image verification service could not complete automated analysis. Human review required.",
         humanReviewRequired: true,
       },
     });

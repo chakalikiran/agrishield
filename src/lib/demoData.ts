@@ -421,4 +421,31 @@ export const initialDisasterReports: DisasterReport[] = [
   },
 ];
 
-// Removed hardcoded/mock claims to ensure real Firestore-backed claims are used.
+export const initialClaims: ClaimRecord[] = [
+  {
+    id: "CLM-AP-2026-001",
+    disasterReportId: "DR001",
+    farmerId: "FMR001",
+    fieldId: "FL001",
+    cropId: "CRP001",
+    status: "Under Review",
+    claimDate: "2026-08-23",
+    disasterType: "Heavy Rainfall",
+    evidenceCompleteness: 100,
+    preliminaryLossEstimate: {
+      fieldAreaAcres: 2.35,
+      estimatedDamagePercent: 68,
+      estimatedAffectedAcres: 1.6,
+      sumInsuredPerAcreINR: 38500,
+      estimatedLossAmountINR: 61600,
+    },
+    aiDamageAggregate: {
+      healthyPercent: 32,
+      moderatePercent: 28,
+      severePercent: 40,
+      estimatedDamagePercent: 68,
+      totalImagesAnalyzed: 4,
+    },
+  },
+];
+
